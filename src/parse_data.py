@@ -54,8 +54,10 @@ def parse_file(json_path: Path) -> pd.DataFrame:
         data = json.load(f)
 
     records = []
-    for vuln in data.get("vulnerabilities", []):
-        cve = vuln.get("cve", {})
+    # Support both NVD API format (vulnerabilities[].cve) and fkie-cad feed (cve_items[])
+    items = data.get("vulnerabilities", data.get("cve_items", []))
+    for vuln in items:
+        cve = vuln.get("cve", vuln)  # unwrap if nested, else use directly
 
         desc = _en_description(cve.get("descriptions", []))
         if not desc or len(desc) < 20:

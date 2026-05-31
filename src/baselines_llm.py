@@ -34,15 +34,7 @@ from evaluate import (
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-SYSTEM_PROMPT = """You are a cybersecurity expert specializing in vulnerability analysis.
-Given a CVE description, predict the structured NVD enrichment fields.
-Respond ONLY with a valid JSON object — no explanation, no markdown, no extra text."""
-
-USER_TEMPLATE = """CVE Description:
-{description}
-
-Predict the following fields and return them as JSON:
-{{
+_JSON_SCHEMA = """{
   "cvss_score": <float 0.0-10.0>,
   "severity": <"CRITICAL"|"HIGH"|"MEDIUM"|"LOW">,
   "cwe": <"CWE-NNN">,
@@ -54,15 +46,64 @@ Predict the following fields and return them as JSON:
   "confidentiality": <"NONE"|"LOW"|"HIGH">,
   "integrity": <"NONE"|"LOW"|"HIGH">,
   "availability": <"NONE"|"LOW"|"HIGH">
-}}"""
+}"""
+
+# default — original prompt
+PROMPT_STYLES = {
+    "default": {
+        "system": (
+            "You are a cybersecurity expert specializing in vulnerability analysis. "
+            "Given a CVE description, predict the structured NVD enrichment fields. "
+            "Respond ONLY with a valid JSON object — no explanation, no markdown, no extra text."
+        ),
+        "user": (
+            "CVE Description:\n{description}\n\n"
+            "Predict the following fields and return them as JSON:\n" + _JSON_SCHEMA
+        ),
+    },
+
+    # minimal — bare instructions, fewer tokens
+    "minimal": {
+        "system": "You are a CVE triage assistant. Output only valid JSON, nothing else.",
+        "user": (
+            "Analyze this CVE and return JSON with these exact fields: "
+            "cvss_score (0.0-10.0), severity (CRITICAL/HIGH/MEDIUM/LOW), cwe (CWE-NNN), "
+            "attack_vector, attack_complexity, privileges_required, user_interaction, "
+            "scope, confidentiality, integrity, availability.\n\nCVE: {description}"
+        ),
+    },
+
+    # structured — chain-of-thought reasoning before final JSON
+    "structured": {
+        "system": (
+            "You are a senior cybersecurity analyst. "
+            "Think step by step before producing your final JSON assessment."
+        ),
+        "user": (
+            "CVE Description:\n{description}\n\n"
+            "Step 1 — Identify the vulnerability type and CWE category.\n"
+            "Step 2 — Assess the attack vector, complexity, required privileges, and user interaction.\n"
+            "Step 3 — Estimate the impact on confidentiality, integrity, and availability, "
+            "and whether scope changes.\n"
+            "Step 4 — Derive the CVSS v3 base score and overall severity tier.\n\n"
+            "After your reasoning, output ONLY the following JSON on its own line "
+            "(no text after the closing brace):\n" + _JSON_SCHEMA
+        ),
+    },
+}
+
+# Legacy aliases used by evaluate_lora.py and prepare_lora_data.py
+SYSTEM_PROMPT = PROMPT_STYLES["default"]["system"]
+USER_TEMPLATE = PROMPT_STYLES["default"]["user"]
 
 
-def _query_openrouter(desc: str, model: str, client) -> str:
+def _query_openrouter(desc: str, model: str, client, style: str = "default") -> str:
+    prompts = PROMPT_STYLES[style]
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": USER_TEMPLATE.format(description=desc)},
+            {"role": "system", "content": prompts["system"]},
+            {"role": "user",   "content": prompts["user"].format(description=desc)},
         ],
         temperature=0,
         max_tokens=512,
@@ -71,12 +112,13 @@ def _query_openrouter(desc: str, model: str, client) -> str:
     return response.choices[0].message.content or ""
 
 
-def _query_anthropic(desc: str, model: str, client) -> str:
+def _query_anthropic(desc: str, model: str, client, style: str = "default") -> str:
+    prompts = PROMPT_STYLES[style]
     response = client.messages.create(
         model=model,
         max_tokens=512,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": USER_TEMPLATE.format(description=desc)}],
+        system=prompts["system"],
+        messages=[{"role": "user", "content": prompts["user"].format(description=desc)}],
     )
     return response.content[0].text if response.content else ""
 
@@ -109,28 +151,30 @@ def _make_result(row, pred: dict, raw: str, model: str) -> dict:
     }
 
 
-def run(model: str, provider: str, n_samples: int, sample_seed: int = 42) -> None:
+def run(model: str, provider: str, n_samples: int, sample_seed: int = 42,
+        prompt_style: str = "default") -> None:
     splits = make_splits()
     test = splits["test"]
     if n_samples > 0:
         test = test.sample(min(n_samples, len(test)), random_state=sample_seed).reset_index(drop=True)
-    print(f"\nEvaluating {model} on {len(test)} test CVEs ...")
+    print(f"\nEvaluating {model} on {len(test)} test CVEs (prompt_style={prompt_style}) ...")
 
     # Build client
     if provider == "anthropic":
         import anthropic
         client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-        query_fn = lambda desc: _query_anthropic(desc, model, client)
+        query_fn = lambda desc: _query_anthropic(desc, model, client, style=prompt_style)
     else:
         from openai import OpenAI
         client = OpenAI(
             api_key=os.environ.get("OPENROUTER_API_KEY", ""),
             base_url="https://openrouter.ai/api/v1",
         )
-        query_fn = lambda desc: _query_openrouter(desc, model, client)
+        query_fn = lambda desc: _query_openrouter(desc, model, client, style=prompt_style)
 
     results = []
     model_slug = model.replace("/", "_").replace(".", "_")
+    style_tag = "" if prompt_style == "default" else f"_{prompt_style}"
 
     for _, row in tqdm(test.iterrows(), total=len(test)):
         raw = ""
@@ -145,13 +189,13 @@ def run(model: str, provider: str, n_samples: int, sample_seed: int = 42) -> Non
         results.append(_make_result(row, pred, raw, model))
         time.sleep(0.3)  # rate limit
 
-    out_path = RESULTS_DIR / f"results_llm_{model_slug}.jsonl"
+    out_path = RESULTS_DIR / f"results_llm_{model_slug}{style_tag}.jsonl"
     save_results(results, out_path)
 
     summary = summarize(model, results)
     print_summary(summary)
 
-    with open(RESULTS_DIR / f"summary_llm_{model_slug}.json", "w") as f:
+    with open(RESULTS_DIR / f"summary_llm_{model_slug}{style_tag}.json", "w") as f:
         json.dump({k: v for k, v in summary.items() if k != "per_component_acc"}, f, indent=2)
 
 
@@ -168,12 +212,15 @@ if __name__ == "__main__":
     parser.add_argument("--model",    default="qwen/qwen-2.5-72b-instruct")
     parser.add_argument("--provider", default="openrouter", choices=["openrouter", "anthropic"])
     parser.add_argument("--n",        type=int, default=200, help="number of test samples (0=all)")
+    parser.add_argument("--prompt-style", default="default",
+                        choices=list(PROMPT_STYLES.keys()),
+                        help="prompt format variant to use")
     parser.add_argument("--all-open-source", action="store_true",
                         help="run all open-source models sequentially")
     args = parser.parse_args()
 
     if args.all_open_source:
         for model, provider in OPEN_SOURCE_MODELS:
-            run(model, provider, args.n)
+            run(model, provider, args.n, prompt_style=args.prompt_style)
     else:
-        run(args.model, args.provider, args.n)
+        run(args.model, args.provider, args.n, prompt_style=args.prompt_style)

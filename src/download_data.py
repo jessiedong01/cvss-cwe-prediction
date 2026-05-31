@@ -2,11 +2,12 @@
 Download NVD CVE JSON feeds from the fkie-cad community mirror.
 https://github.com/fkie-cad/nvd-json-data-feeds
 """
-import gzip
+import lzma
 import shutil
 import sys
-import urllib.request
 from pathlib import Path
+
+import requests
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 BASE_URL = "https://github.com/fkie-cad/nvd-json-data-feeds/releases/latest/download"
@@ -20,22 +21,26 @@ def download_year(year: int, force: bool = False) -> Path:
         print(f"[skip] {out_path.name} already exists ({out_path.stat().st_size // 1_000_000} MB)")
         return out_path
 
-    gz_path = DATA_DIR / f"CVE-{year}.json.gz"
-    url = f"{BASE_URL}/CVE-{year}.json.gz"
+    xz_path = DATA_DIR / f"CVE-{year}.json.xz"
+    url = f"{BASE_URL}/CVE-{year}.json.xz"
     print(f"Downloading {url} ...")
 
-    def _progress(block, block_size, total):
-        done = block * block_size
-        pct = done / total * 100 if total > 0 else 0
-        print(f"\r  {done // 1_000_000} / {total // 1_000_000} MB ({pct:.1f}%)", end="", flush=True)
-
-    urllib.request.urlretrieve(url, gz_path, reporthook=_progress)
+    with requests.get(url, stream=True, allow_redirects=True) as r:
+        r.raise_for_status()
+        total = int(r.headers.get("content-length", 0))
+        done = 0
+        with open(xz_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1 << 20):
+                f.write(chunk)
+                done += len(chunk)
+                pct = done / total * 100 if total else 0
+                print(f"\r  {done // 1_000_000} / {total // 1_000_000} MB ({pct:.1f}%)", end="", flush=True)
     print()
 
     print(f"  Decompressing ...")
-    with gzip.open(gz_path, "rb") as f_in, open(out_path, "wb") as f_out:
+    with lzma.open(xz_path, "rb") as f_in, open(out_path, "wb") as f_out:
         shutil.copyfileobj(f_in, f_out)
-    gz_path.unlink()
+    xz_path.unlink()
     print(f"  -> {out_path.name} ({out_path.stat().st_size // 1_000_000} MB)")
     return out_path
 

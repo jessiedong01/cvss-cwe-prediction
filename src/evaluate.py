@@ -37,6 +37,20 @@ def per_component_accuracy(true_rows: list[dict], pred_rows: list[dict]) -> dict
     return results
 
 
+def cvss_vector_partial_match(true_rows: list[dict], pred_rows: list[dict]) -> float:
+    """Mean fraction of CVSS vector components correctly predicted per example (0.0–1.0)."""
+    if not true_rows:
+        return 0.0
+    scores = []
+    for true, pred in zip(true_rows, pred_rows):
+        n_correct = sum(
+            true.get(f, "").upper() == pred.get(f, "").upper()
+            for f in CVSS_VECTOR_FIELDS
+        )
+        scores.append(n_correct / len(CVSS_VECTOR_FIELDS))
+    return float(np.mean(scores))
+
+
 def top_k_accuracy(y_true: list[str], y_pred_topk: list[list[str]], k: int = 3) -> float:
     hits = sum(t in [p.upper() for p in preds[:k]] for t, preds in zip(y_true, y_pred_topk))
     return hits / len(y_true)
@@ -103,6 +117,10 @@ def summarize(model_name: str, results: list[dict]) -> dict[str, Any]:
         [r["true_components"] for r in valid],
         [r["pred_components"] for r in valid],
     )
+    summary["cvss_vector_partial_match"] = cvss_vector_partial_match(
+        [r["true_components"] for r in valid],
+        [r["pred_components"] for r in valid],
+    )
 
     return summary
 
@@ -113,7 +131,7 @@ def print_summary(summary: dict) -> None:
     print(f"  CVSS MAE         : {summary.get('cvss_mae', float('nan')):.3f}")
     print(f"  Severity acc     : {summary.get('severity_acc', float('nan')):.3f}")
     print(f"  CWE acc (top-1)  : {summary.get('cwe_acc', float('nan')):.3f}")
-    print(f"  CVSS vector acc  : {summary.get('cvss_vector_acc', float('nan')):.3f}")
+    print(f"  CVSS vector acc  : {summary.get('cvss_vector_acc', float('nan')):.3f}  (partial: {summary.get('cvss_vector_partial_match', float('nan')):.3f})")
     if "per_component_acc" in summary:
         print("  Per-component accuracy:")
         for k, v in summary["per_component_acc"].items():
