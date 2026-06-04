@@ -1,0 +1,26 @@
+\paragraph{Fine-tuned model (user turn).}
+{\footnotesize \begin{verbatim}
+You are a cybersecurity expert. Given the CVE description below, predict the
+NVD enrichment fields.
+Return ONLY a JSON object with no extra text.
+
+CVE Description:
+<CVE description>
+\end{verbatim}}
+
+\paragraph{Zero-shot model (user turn).}
+{\footnotesize \begin{verbatim}
+You are a cybersecurity expert specializing in vulnerability analysis. Given a
+CVE description, predict the NVD CVSS v3.1 enrichment fields.
+
+CVE Description:
+<CVE description>
+
+Respond ONLY with one JSON object with exactly these keys and allowed values:
+{"attack_vector": "NETWORK"|"ADJACENT_NETWORK"|"LOCAL"|"PHYSICAL",
+"attack_complexity": "LOW"|"HIGH", "privileges_required": "NONE"|"LOW"|"HIGH",
+"user_interaction": "NONE"|"REQUIRED", "scope": "UNCHANGED"|"CHANGED",
+"confidentiality": "NONE"|"LOW"|"HIGH", "integrity": "NONE"|"LOW"|"HIGH",
+"availability": "NONE"|"LOW"|"HIGH", "cwe": "CWE-<number>", "cvss_score":
+<number 0.0-10.0>, "severity": "CRITICAL"|"HIGH"|"MEDIUM"|"LOW"}
+\end{verbatim}}

@@ -1,0 +1,39 @@
+Loading cached splits from splits.pkl
+[16:15:44] train 40,436 | val 10,109 | test 36,325
+[16:15:46] top-100 CWEs cover 91.7% of test CVEs
+[16:15:46]   ridge alpha=0.3: val MAE 0.7905
+[16:15:47]   ridge alpha=1.0: val MAE 0.7718
+[16:15:47]   ridge alpha=3.0: val MAE 0.7918
+[16:15:47]   ridge alpha=10.0: val MAE 0.8531
+[16:15:47] tuning lr
+[16:15:49]   lr_severity C=0.3: val acc 0.7424
+[16:15:51]   lr_severity C=1.0: val acc 0.7609
+[16:15:54]   lr_severity C=3.0: val acc 0.7641
+[16:16:00]   lr_severity C=10.0: val acc 0.7631
+[16:16:25]   lr_cwe C=0.3: val acc 0.6454
+[16:16:57]   lr_cwe C=1.0: val acc 0.7140
+[16:17:42]   lr_cwe C=3.0: val acc 0.7441
+[16:18:43]   lr_cwe C=10.0: val acc 0.7545
+[16:18:49]   lr_components C=0.3: mean val acc 0.9020
+[16:18:57]   lr_components C=1.0: mean val acc 0.9132
+[16:19:09]   lr_components C=3.0: mean val acc 0.9173
+[16:19:21]   lr_components C=10.0: mean val acc 0.9168
+[16:19:21] fitting lr on train: {'C_severity': 3.0, 'C_cwe': 10.0, 'C_components': 3.0, 'balanced': False}
+[16:20:40] tuning lr_bal
+[16:20:43]   lr_bal_severity C=0.3: val acc 0.6944
+[16:20:46]   lr_bal_severity C=1.0: val acc 0.7302
+[16:20:50]   lr_bal_severity C=3.0: val acc 0.7485
+[16:20:57]   lr_bal_severity C=10.0: val acc 0.7551
+[16:21:05]   lr_bal_components C=0.3: mean val acc 0.8928
+[16:21:18]   lr_bal_components C=1.0: mean val acc 0.9052
+[16:21:30]   lr_bal_components C=3.0: mean val acc 0.9100
+[16:21:42]   lr_bal_components C=10.0: mean val acc 0.9107
+[16:21:42] fitting lr_bal on train: {'C_severity': 10.0, 'C_cwe': 10.0, 'C_components': 10.0, 'balanced': True}
+[16:23:36] fitting rf (300 trees; components 100 trees)
+[16:24:50] lr_direct      sev 0.671  macroF1 0.479  cwe 0.672  MAE 0.979  partial 0.869  vector 0.441
+[16:24:53] lr_formula     sev 0.671  macroF1 0.516  cwe 0.672  MAE 0.939  partial 0.869  vector 0.441
+[16:24:56] lr_bal_direct  sev 0.657  macroF1 0.519  cwe 0.672  MAE 0.979  partial 0.860  vector 0.405
+[16:24:59] lr_bal_formula sev 0.671  macroF1 0.539  cwe 0.672  MAE 0.984  partial 0.860  vector 0.405
+[16:25:02] rf_direct      sev 0.669  macroF1 0.471  cwe 0.652  MAE 0.979  partial 0.861  vector 0.418
+[16:25:05] rf_formula     sev 0.640  macroF1 0.478  cwe 0.652  MAE 1.028  partial 0.861  vector 0.418
+[16:25:05] done

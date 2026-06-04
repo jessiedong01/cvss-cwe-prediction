@@ -1,0 +1,92 @@
+\documentclass[10pt]{article}
+
+% Page and type: single column, 5.5in measure, Palatino with Inconsolata for code.
+\usepackage[letterpaper, textwidth=5.5in, textheight=9in, centering, headheight=12pt, headsep=18pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\usepackage{inconsolata}
+\usepackage{microtype}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5.5pt}
+\setlength{\emergencystretch}{2em}  % narrow measure: avoid overfull lines
+
+\usepackage{needspace}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+
+% Headings: bold, numbered, no decoration.
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+\titleformat{\paragraph}[runin]{\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\paragraph}{0pt}{6pt}{0.6em}
+
+% Running header.
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Preprint.}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% Author-year citations, blue links.
+\usepackage[round,authoryear]{natbib}
+\definecolor{linkblue}{RGB}{56,118,196}
+\usepackage[colorlinks=true, citecolor=linkblue, linkcolor=linkblue, urlcolor=linkblue]{hyperref}
+
+% Let floats sit closer to where they are cited.
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+
+\usepackage{caption}
+\captionsetup{font=normalsize, labelfont=normalfont, labelsep=colon}
+
+\input{numbers}
+
+\begin{document}
+
+\thispagestyle{fancy}
+\vspace*{0.35in}
+\begin{center}
+{\Large\bfseries Predicting CVSS and CWE from CVE Descriptions\\with Fine-Tuned Small Language Models\par}
+\vspace{0.3in}
+{\bfseries Tara Dixit \hspace{0.45in} Jessie Dong \hspace{0.45in} Summer Li\par}
+\vspace{6pt}
+Stanford University\par
+\vspace{2pt}
+{\small\ttfamily \{taradixit, jessiedong, summerli\}@stanford.edu\par}
+\end{center}
+\vspace{0.15in}
+
+\begin{center}{\large\bfseries Abstract}\end{center}
+\vspace{-6pt}
+\begin{quote}
+\input{sections/abstract}
+\end{quote}
+
+\input{sections/intro}
+\input{sections/related}
+\input{sections/data}
+\input{sections/methods}
+\input{sections/results}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

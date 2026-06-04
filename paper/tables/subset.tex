@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Zero-shot Phi-3.5 trails both trained systems.} Comparison on the same random sample of 2{,}000 test CVEs. Every system is scored on exactly these CVEs.}
+\label{tab:subset}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{Severity} & CWE & Score & \multicolumn{2}{c}{Vector} \\
+\cmidrule(lr){2-3}\cmidrule(lr){6-7}
+System & Acc. & Macro-F1 & Acc. & MAE $\downarrow$ & Partial & Exact \\
+\midrule
+TF-IDF + LR, formula & 65.3\,{\scriptsize$\pm$2.1} & 47.6\,{\scriptsize$\pm$1.8} & 66.2\,{\scriptsize$\pm$2.2} & 0.99\,{\scriptsize$\pm$0.06} & 86.5\,{\scriptsize$\pm$0.7} & 42.2\,{\scriptsize$\pm$2.2} \\
+Phi-3.5 zero-shot, direct & 20.8\,{\scriptsize$\pm$1.7} & 15.4\,{\scriptsize$\pm$2.4} & 25.7\,{\scriptsize$\pm$2.0} & 1.58\,{\scriptsize$\pm$0.05} & 60.5\,{\scriptsize$\pm$0.7} & 2.4\,{\scriptsize$\pm$0.6} \\
+Phi-3.5 zero-shot, formula & 43.5\,{\scriptsize$\pm$2.3} & 26.8\,{\scriptsize$\pm$1.7} & 25.7\,{\scriptsize$\pm$2.0} & 2.08\,{\scriptsize$\pm$0.08} & 60.5\,{\scriptsize$\pm$0.7} & 2.4\,{\scriptsize$\pm$0.6} \\
+Phi-3.5 + LoRA, formula & \textbf{69.6}\,{\scriptsize$\pm$2.0} & \textbf{52.8}\,{\scriptsize$\pm$3.3} & \textbf{68.8}\,{\scriptsize$\pm$2.1} & \textbf{0.87}\,{\scriptsize$\pm$0.05} & \textbf{87.5}\,{\scriptsize$\pm$0.7} & \textbf{48.0}\,{\scriptsize$\pm$2.1} \\
+\bottomrule
+\end{tabular}
+\end{table}

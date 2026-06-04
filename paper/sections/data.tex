@@ -1,0 +1,39 @@
+\section{Task and Data}\label{sec:data}
+
+\paragraph{Task.}
+The input is the English description of a CVE.
+The outputs are the eight CVSS v3.1 base metrics (attack vector, attack complexity, privileges required, user interaction, scope, and the confidentiality, integrity, and availability impacts), the base score, the severity tier (\textsc{Critical}, \textsc{High}, \textsc{Medium}, \textsc{Low}), and the CWE identifier.
+Figure~\ref{fig:task} shows one example.
+\paragraph{Source.}
+We take NVD records from the Fraunhofer FKIE mirror of the NVD JSON feeds~\citep{fkie2026nvdfeeds}, pinned to release \texttt{v2026.10.05-000016}.
+NVD records are revised over time, so we pin the release to make every number in this paper reproducible.
+
+\paragraph{Filtering.}
+We keep a CVE if it has an English description of at least 20 characters, a CVSS v3.x base metric with a severity tier, and a specific CWE (we drop the placeholders \texttt{NVD-CWE-noinfo} and \texttt{NVD-CWE-Other}).
+When a CVE has several CVSS entries, we prefer NIST's primary score.
+This leaves \nAll{} CVEs from 2022--2024.
+Of these, \nVThreeZero{} use CVSS v3.0. The rest use v3.1, and the base-score equations of the two versions agree on all of them.
+
+\paragraph{Temporal split.}
+CVEs with 2022 and 2023 identifiers form the training and validation pool (\nTrainVal{} CVEs), split 80/20 at random with severity stratification into \nTrain{} training and \nVal{} validation CVEs.
+All \nTest{} usable CVEs with 2024 identifiers form the test set.
+Validation data is used only to choose hyperparameters and checkpoints.
+Table~\ref{tab:data} gives the label distribution.
+
+\input{tables/data}
+
+\paragraph{Label distribution.}
+\textsc{Low} is under 2\% of every split.
+CWEs follow a long tail: the training set contains \nTrainCwes{} distinct CWEs and the test set \nTestCwes{}.
+The 100 most frequent training CWEs cover \nTopCov\% of test CVEs.
+
+\paragraph{CVSS calculator.}
+We implemented the CVSS v3.1 base-score equations~\citep{first2019cvss31}, including the specification's floating-point-safe round-up.
+Applied to the true vectors, it reproduces the NVD base score and severity for all \nAll{} CVEs.
+Any error in a formula-based score therefore comes from the predicted vector, not from the calculator.
+
+\paragraph{Excluded baseline.}
+VLAI~\citep{bonhomme2025vlai} is a public severity classifier.
+Its training data, the \texttt{CIRCL/vulnerability-scores} dataset, uses a random split over all years.
+Rows we sampled from its training split include CVEs from 2024, 2025, and 2026.
+Scoring it on our 2024 test set would measure memorization as much as generalization, so we leave it out.

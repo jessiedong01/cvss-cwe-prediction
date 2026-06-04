@@ -1,0 +1,14 @@
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Fine-tuning makes outputs self-consistent.} Language-model outputs (\%). \emph{Score = formula}: the score the model wrote equals the CVSS v3.1 score of the vector it wrote. \emph{Severity = tier of score}: the severity it wrote matches the tier of the score it wrote.}
+\label{tab:consistency}
+\small
+\begin{tabular}{lccc}
+\toprule
+Model & Valid JSON & Score = formula & Severity = tier of score \\
+\midrule
+Phi-3.5 zero-shot & 99.7 & 3.4 & 37.0 \\
+Phi-3.5 + LoRA & 100.0 & 99.8 & 100.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
