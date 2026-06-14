@@ -1,0 +1,6 @@
+\section{Conclusion}
+A 3.8B-parameter model fine-tuned for \nLoraTrainHours{} hours predicts every NVD enrichment field better than strong TF-IDF baselines on a full year of later CVEs.
+The margins are modest, and TF-IDF remains a fast, strong baseline that any new method should beat.
+Computing the score from the predicted vector keeps outputs consistent and helps a linear model, but it shifts errors toward over-calling \textsc{Critical}, a trade-off that users should choose deliberately.
+The rarest severity tier, \textsc{Low}, is still poorly predicted by every system.
+The next steps are rebalancing the training data, a second training epoch, larger open models, and CVSS v4.0.

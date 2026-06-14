@@ -1,156 +1,176 @@
 """
-Classical ML baselines: TF-IDF + Logistic Regression and Random Forest.
+Classical baselines over TF-IDF features.
 
-Trains three tasks jointly:
-  1. Severity classification (4-class)
-  2. CWE classification (multi-class, ~150 categories)
-  3. CVSS score regression (Ridge)
+Models (hyperparameters chosen on the 2022-2023 validation split):
+  lr       logistic regression
+  lr_bal   logistic regression with class-balanced weights
+  rf       random forest, 300 trees (not tuned; reported as-is)
 
-Also trains per-component CVSS vector classifiers.
+Each model produces two systems:
+  *_direct   severity from a severity classifier, score from ridge regression
+  *_formula  predict the 8 CVSS components, then compute score and severity
+             with the CVSS v3.1 formula (src/cvss.py)
+
+Outputs:
+  results/preds_<system>.jsonl.gz   per-example predictions on the test set
+  results/summary_classical.json    metrics with 95% bootstrap CIs
+  results/tuning_classical.json     validation scores for every setting tried
 
 Usage:
   python src/baselines_classical.py
 """
+import gzip
 import json
-import pickle
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.metrics import classification_report
-from sklearn.preprocessing import LabelEncoder
 
 sys.path.insert(0, str(Path(__file__).parent))
+from cvss import base_score, severity
+from metrics import COMPONENTS, summarize
 from prepare_splits import make_splits
-from evaluate import (
-    cvss_mae, exact_match, per_component_accuracy,
-    summarize, print_summary, save_results, CVSS_VECTOR_FIELDS,
-)
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-# ── TF-IDF config ────────────────────────────────────────────────────────────
-TFIDF_KWARGS = dict(
-    ngram_range=(1, 2),
-    max_features=50_000,
-    sublinear_tf=True,
-    min_df=2,
-)
+TFIDF_KWARGS = dict(ngram_range=(1, 2), max_features=50_000, sublinear_tf=True, min_df=2)
+C_GRID = [0.3, 1.0, 3.0, 10.0]
+ALPHA_GRID = [0.3, 1.0, 3.0, 10.0]
+TOP_CWES = 100
 
 
-def build_tfidf(train_texts: list[str]):
-    vec = TfidfVectorizer(**TFIDF_KWARGS)
-    X_train = vec.fit_transform(train_texts)
-    return vec, X_train
+def log(msg: str) -> None:
+    print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
-def row_to_components(row) -> dict:
-    return {f: row[f] for f in CVSS_VECTOR_FIELDS}
+def lr(C: float, balanced: bool = False) -> LogisticRegression:
+    return LogisticRegression(C=C, max_iter=3000, class_weight="balanced" if balanced else None)
 
 
-def run(model_type: str = "lr") -> None:
-    assert model_type in ("lr", "rf"), "model_type must be 'lr' or 'rf'"
-    label = "LogisticRegression" if model_type == "lr" else "RandomForest"
-    print(f"\n{'='*60}")
-    print(f"  Classical baseline: TF-IDF + {label}")
-    print(f"{'='*60}")
+def rf(n_trees: int) -> RandomForestClassifier:
+    return RandomForestClassifier(n_estimators=n_trees, n_jobs=-1, random_state=42)
 
+
+def accuracy(y, p) -> float:
+    return float(np.mean(np.asarray(y) == np.asarray(p)))
+
+
+def tune_C(X_tr, y_tr, X_va, y_va, balanced: bool, name: str, tuning: dict) -> float:
+    scores = {}
+    for C in C_GRID:
+        scores[C] = accuracy(y_va, lr(C, balanced).fit(X_tr, y_tr).predict(X_va))
+        log(f"  {name} C={C}: val acc {scores[C]:.4f}")
+    tuning[name] = scores
+    return max(scores, key=scores.get)
+
+
+def write_preds(path: Path, records: list[dict]) -> None:
+    with gzip.open(path, "wt") as f:
+        for r in records:
+            f.write(json.dumps(r) + "\n")
+
+
+def main() -> None:
     splits = make_splits()
     train, val, test = splits["train"], splits["val"], splits["test"]
+    log(f"train {len(train):,} | val {len(val):,} | test {len(test):,}")
 
-    # ── TF-IDF features ──────────────────────────────────────────────────────
-    print("Building TF-IDF features ...")
-    vec, X_train = build_tfidf(train["description"].tolist())
-    X_val  = vec.transform(val["description"].tolist())
-    X_test = vec.transform(test["description"].tolist())
+    vec = TfidfVectorizer(**TFIDF_KWARGS)
+    X_tr = vec.fit_transform(train["description"])
+    X_va = vec.transform(val["description"])
+    X_te = vec.transform(test["description"])
 
-    # ── Severity ─────────────────────────────────────────────────────────────
-    print("Training severity classifier ...")
-    if model_type == "lr":
-        sev_clf = LogisticRegression(max_iter=1000, C=1.0, n_jobs=-1)
-    else:
-        sev_clf = RandomForestClassifier(n_estimators=300, n_jobs=-1, random_state=42)
-    sev_clf.fit(X_train, train["severity"])
-    sev_pred = sev_clf.predict(X_test)
-    print(classification_report(test["severity"], sev_pred, zero_division=0))
+    top = set(train["cwe"].value_counts().head(TOP_CWES).index)
+    cwe_tr = train["cwe"].where(train["cwe"].isin(top), "OTHER")
+    cwe_va = val["cwe"].where(val["cwe"].isin(top), "OTHER")
+    coverage = float(test["cwe"].isin(top).mean())
+    log(f"top-{TOP_CWES} CWEs cover {coverage:.1%} of test CVEs")
 
-    # ── CWE ──────────────────────────────────────────────────────────────────
-    print("Training CWE classifier ...")
-    top_cwes = train["cwe"].value_counts().head(100).index.tolist()
-    train_cwe = train["cwe"].where(train["cwe"].isin(top_cwes), other="OTHER")
-    test_cwe  = test["cwe"].where(test["cwe"].isin(top_cwes), other="OTHER")
+    tuning: dict = {}
 
-    if model_type == "lr":
-        cwe_clf = LogisticRegression(max_iter=1000, C=1.0, n_jobs=-1)
-    else:
-        cwe_clf = RandomForestClassifier(n_estimators=300, n_jobs=-1, random_state=42)
-    cwe_clf.fit(X_train, train_cwe)
-    cwe_pred = cwe_clf.predict(X_test)
-    cwe_acc = exact_match(test_cwe.tolist(), cwe_pred.tolist())
-    print(f"CWE top-1 accuracy (top-100 classes): {cwe_acc:.3f}")
+    # ── CVSS score by ridge regression (shared by every *_direct system) ──
+    maes = {}
+    for a in ALPHA_GRID:
+        p = np.clip(Ridge(alpha=a).fit(X_tr, train["cvss_score"]).predict(X_va), 0, 10)
+        maes[a] = float(np.mean(np.abs(p - val["cvss_score"])))
+        log(f"  ridge alpha={a}: val MAE {maes[a]:.4f}")
+    tuning["ridge_alpha"] = maes
+    alpha = min(maes, key=maes.get)
+    ridge_pred = np.clip(Ridge(alpha=alpha).fit(X_tr, train["cvss_score"]).predict(X_te), 0, 10)
 
-    # ── CVSS score ───────────────────────────────────────────────────────────
-    print("Training CVSS score regressor ...")
-    score_reg = Ridge(alpha=1.0)
-    score_reg.fit(X_train, train["cvss_score"])
-    score_pred = score_reg.predict(X_test)
-    score_pred_clipped = np.clip(score_pred, 0, 10)
-    mae = cvss_mae(test["cvss_score"].tolist(), score_pred_clipped.tolist())
-    print(f"CVSS score MAE: {mae:.3f}")
+    # ── Fit the three models ──
+    preds: dict[str, dict] = {}
+    chosen: dict = {"ridge_alpha": alpha, "top_cwes": TOP_CWES, "cwe_coverage_test": coverage}
 
-    # ── Per-component CVSS vector classifiers ────────────────────────────────
-    print("Training per-component CVSS vector classifiers ...")
-    comp_preds = {f: [] for f in CVSS_VECTOR_FIELDS}
-    for field in CVSS_VECTOR_FIELDS:
-        if model_type == "lr":
-            clf = LogisticRegression(max_iter=500, C=1.0, n_jobs=-1)
-        else:
-            clf = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=42)
-        clf.fit(X_train, train[field])
-        comp_preds[field] = clf.predict(X_test).tolist()
+    for name, balanced in (("lr", False), ("lr_bal", True)):
+        log(f"tuning {name}")
+        C_sev = tune_C(X_tr, train["severity"], X_va, val["severity"], balanced, f"{name}_severity", tuning)
+        C_cwe = tune_C(X_tr, cwe_tr, X_va, cwe_va, False, f"{name}_cwe", tuning) if name == "lr" else chosen["lr"]["C_cwe"]
+        # one C for all components, chosen by mean validation accuracy
+        comp_scores = {}
+        for C in C_GRID:
+            comp_scores[C] = float(np.mean([
+                accuracy(val[f], lr(C, balanced).fit(X_tr, train[f]).predict(X_va)) for f in COMPONENTS
+            ]))
+            log(f"  {name}_components C={C}: mean val acc {comp_scores[C]:.4f}")
+        tuning[f"{name}_components"] = comp_scores
+        C_comp = max(comp_scores, key=comp_scores.get)
+        chosen[name] = {"C_severity": C_sev, "C_cwe": C_cwe, "C_components": C_comp, "balanced": balanced}
 
-    comp_true = [row_to_components(row) for _, row in test.iterrows()]
-    comp_pred = [{f: comp_preds[f][i] for f in CVSS_VECTOR_FIELDS} for i in range(len(test))]
-    comp_acc = per_component_accuracy(comp_true, comp_pred)
-    print("Per-component accuracy:")
-    for k, v in comp_acc.items():
-        print(f"  {k:<25s}: {v:.3f}")
+        log(f"fitting {name} on train: {chosen[name]}")
+        preds[name] = {
+            "severity": lr(C_sev, balanced).fit(X_tr, train["severity"]).predict(X_te),
+            "cwe": lr(C_cwe).fit(X_tr, cwe_tr).predict(X_te),
+            "components": {f: lr(C_comp, balanced).fit(X_tr, train[f]).predict(X_te) for f in COMPONENTS},
+        }
 
-    # ── Assemble per-example results ─────────────────────────────────────────
-    results = []
-    for i, (_, row) in enumerate(test.iterrows()):
-        pred_vec_parts = {f: comp_preds[f][i] for f in CVSS_VECTOR_FIELDS}
-        results.append({
-            "model": f"tfidf_{model_type}",
-            "cve_id": row["cve_id"],
-            "parsed": True,
-            "true_severity":    row["severity"],
-            "pred_severity":    sev_pred[i],
-            "true_cwe":         row["cwe"],
-            "pred_cwe":         cwe_pred[i],
-            "true_cvss_score":  row["cvss_score"],
-            "pred_cvss_score":  float(score_pred_clipped[i]),
-            "true_cvss_vector": row["cvss_vector"],
-            "pred_cvss_vector": "",   # classical models don't reconstruct full string
-            "true_components":  row_to_components(row),
-            "pred_components":  pred_vec_parts,
-        })
+    log("fitting rf (300 trees; components 100 trees)")
+    chosen["rf"] = {"trees": 300, "trees_components": 100}
+    preds["rf"] = {
+        "severity": rf(300).fit(X_tr, train["severity"]).predict(X_te),
+        "cwe": rf(300).fit(X_tr, cwe_tr).predict(X_te),
+        "components": {f: rf(100).fit(X_tr, train[f]).predict(X_te) for f in COMPONENTS},
+    }
 
-    out_path = RESULTS_DIR / f"results_tfidf_{model_type}.jsonl"
-    save_results(results, out_path)
+    # ── Assemble systems ──
+    summary = {"settings": chosen, "systems": {}}
+    rows = test.to_dict("records")
+    for name, p in preds.items():
+        for mode in ("direct", "formula"):
+            system = f"{name}_{mode}"
+            records = []
+            for i, row in enumerate(rows):
+                comps = {f: p["components"][f][i] for f in COMPONENTS}
+                if mode == "formula":
+                    score = base_score(comps)
+                    sev = severity(score)
+                else:
+                    score = float(ridge_pred[i])
+                    sev = p["severity"][i]
+                records.append({
+                    "system": system, "cve_id": row["cve_id"], "parsed": True,
+                    "true_severity": row["severity"], "pred_severity": sev,
+                    "true_cwe": row["cwe"], "pred_cwe": p["cwe"][i],
+                    "true_cvss_score": row["cvss_score"], "pred_cvss_score": score,
+                    "true_components": {f: row[f] for f in COMPONENTS},
+                    "pred_components": comps,
+                })
+            write_preds(RESULTS_DIR / f"preds_{system}.jsonl.gz", records)
+            s = summarize(records)
+            summary["systems"][system] = s
+            e = s["est"]
+            log(f"{system:14s} sev {e['sev']:.3f}  macroF1 {e['sev_macro_f1']:.3f}  "
+                f"cwe {e['cwe']:.3f}  MAE {e['ae']:.3f}  partial {e['partial']:.3f}  vector {e['vector']:.3f}")
 
-    summary = summarize(f"TF-IDF + {label}", results)
-    print_summary(summary)
-
-    # Save summary
-    with open(RESULTS_DIR / f"summary_tfidf_{model_type}.json", "w") as f:
-        json.dump({k: v for k, v in summary.items() if k != "per_component_acc"}, f, indent=2)
+    (RESULTS_DIR / "summary_classical.json").write_text(json.dumps(summary, indent=2, default=float))
+    (RESULTS_DIR / "tuning_classical.json").write_text(json.dumps(tuning, indent=2, default=float))
+    log("done")
 
 
 if __name__ == "__main__":
-    run("lr")
-    run("rf")
+    main()

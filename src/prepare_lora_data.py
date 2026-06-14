@@ -1,106 +1,99 @@
 """
 Format CVE records as chat-style JSONL for MLX-LM LoRA fine-tuning.
 
-Output files (in data/):
-  train.jsonl  — 80% of 2022-2023 CVEs
-  valid.jsonl  — 20% of 2022-2023 CVEs
+The target lists the eight CVSS components first, then CWE, score and
+severity. The model therefore commits to the components before it writes a
+score, and we can check whether its score agrees with its own components.
 
-Each line:
-  {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+Output (in data/lora/):
+  train.jsonl  all 2022-2023 training CVEs (optionally rebalanced)
+  valid.jsonl  a fixed sample of validation CVEs, for the training loss curve
 
 Usage:
   python src/prepare_lora_data.py
-  python src/prepare_lora_data.py --max-train 20000   # cap for quick experiments
+  python src/prepare_lora_data.py --oversample-low 5 --out data/lora_bal
 """
 import argparse
 import json
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).parent))
+from metrics import COMPONENTS
 from prepare_splits import make_splits
 
 DATA_DIR = Path(__file__).parent.parent / "data"
+MAX_DESC_CHARS = 2000  # ~500 tokens; affects <1% of CVEs
+MAX_TRAIN_TOKENS = 768  # drop longer training examples (1.4%); keeps peak GPU memory bounded
 
-USER_TEMPLATES = {
-    "default": (
-        "You are a cybersecurity expert. Given the CVE description below, predict the NVD enrichment fields.\n"
-        "Return ONLY a JSON object with no extra text.\n\n"
-        "CVE Description:\n{description}"
-    ),
-    "minimal": (
-        "Analyze this CVE and return JSON with these exact fields: "
-        "cvss_score (0.0-10.0), severity (CRITICAL/HIGH/MEDIUM/LOW), cwe (CWE-NNN), "
-        "attack_vector, attack_complexity, privileges_required, user_interaction, "
-        "scope, confidentiality, integrity, availability.\n\nCVE: {description}"
-    ),
-    "structured": (
-        "You are a senior cybersecurity analyst. Think step by step before producing your final JSON.\n\n"
-        "CVE Description:\n{description}\n\n"
-        "Step 1 — Identify the vulnerability type and CWE category.\n"
-        "Step 2 — Assess the attack vector, complexity, required privileges, and user interaction.\n"
-        "Step 3 — Estimate the impact on confidentiality, integrity, and availability, "
-        "and whether scope changes.\n"
-        "Step 4 — Derive the CVSS v3 base score and overall severity tier.\n\n"
-        "Output ONLY JSON on its own line after your reasoning (no text after the closing brace)."
-    ),
-}
-
-# Default alias used by evaluate_lora.py
-USER_TEMPLATE = USER_TEMPLATES["default"]
-
-ASSISTANT_TEMPLATE = """{{"cvss_score": {cvss_score}, "severity": "{severity}", "cwe": "{cwe}", "attack_vector": "{attack_vector}", "attack_complexity": "{attack_complexity}", "privileges_required": "{privileges_required}", "user_interaction": "{user_interaction}", "scope": "{scope}", "confidentiality": "{confidentiality}", "integrity": "{integrity}", "availability": "{availability}", "cvss_vector": "{cvss_vector}"}}"""
+USER_TEMPLATE = (
+    "You are a cybersecurity expert. Given the CVE description below, predict the NVD enrichment fields.\n"
+    "Return ONLY a JSON object with no extra text.\n\n"
+    "CVE Description:\n{description}"
+)
 
 
-def row_to_example(row, prompt_style: str = "default") -> dict:
-    user_content = USER_TEMPLATES[prompt_style].format(description=row["description"])
-    assistant_content = ASSISTANT_TEMPLATE.format(
-        cvss_score=row["cvss_score"],
-        severity=row["severity"],
-        cwe=row["cwe"],
-        attack_vector=row["attack_vector"],
-        attack_complexity=row["attack_complexity"],
-        privileges_required=row["privileges_required"],
-        user_interaction=row["user_interaction"],
-        scope=row["scope"],
-        confidentiality=row["confidentiality"],
-        integrity=row["integrity"],
-        availability=row["availability"],
-        cvss_vector=row["cvss_vector"],
-    )
+def clip(desc: str) -> str:
+    return desc if len(desc) <= MAX_DESC_CHARS else desc[:MAX_DESC_CHARS] + " ..."
+
+
+def target(row) -> str:
+    out = {f: row[f] for f in COMPONENTS}
+    out["cwe"] = row["cwe"]
+    out["cvss_score"] = float(row["cvss_score"])
+    out["severity"] = row["severity"]
+    return json.dumps(out)
+
+
+def row_to_example(row) -> dict:
     return {"messages": [
-        {"role": "user",      "content": user_content},
-        {"role": "assistant", "content": assistant_content},
+        {"role": "user", "content": USER_TEMPLATE.format(description=clip(row["description"]))},
+        {"role": "assistant", "content": target(row)},
     ]}
 
 
-def write_jsonl(rows, path: Path, prompt_style: str = "default") -> None:
+def n_tokens(examples: list[dict]) -> list[int]:
+    from transformers import AutoTokenizer
+    tok = AutoTokenizer.from_pretrained("microsoft/Phi-3.5-mini-instruct")
+    texts = [tok.apply_chat_template(e["messages"], tokenize=False) for e in examples]
+    return [len(ids) for ids in tok(texts, add_special_tokens=False)["input_ids"]]
+
+
+def write_jsonl(df: pd.DataFrame, path: Path, max_tokens: int = 0) -> None:
+    examples = [row_to_example(row) for _, row in df.iterrows()]
+    if max_tokens:
+        lengths = n_tokens(examples)
+        kept = [e for e, n in zip(examples, lengths) if n <= max_tokens]
+        print(f"  dropped {len(examples) - len(kept):,} examples over {max_tokens} tokens")
+        examples = kept
     with open(path, "w") as f:
-        for _, row in rows.iterrows():
-            f.write(json.dumps(row_to_example(row, prompt_style=prompt_style)) + "\n")
-    print(f"  Wrote {len(rows):,} examples -> {path.name}")
+        for e in examples:
+            f.write(json.dumps(e) + "\n")
+    print(f"  wrote {len(examples):,} examples -> {path}")
 
 
-def prepare(max_train: int = 0, prompt_style: str = "default") -> None:
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(DATA_DIR / "lora"))
+    ap.add_argument("--oversample-low", type=int, default=1, help="repeat LOW examples this many times")
+    ap.add_argument("--n-valid", type=int, default=400)
+    args = ap.parse_args()
+
     splits = make_splits()
     train, val = splits["train"], splits["val"]
+    if args.oversample_low > 1:
+        low = train[train["severity"] == "LOW"]
+        train = pd.concat([train] + [low] * (args.oversample_low - 1))
+    train = train.sample(frac=1.0, random_state=42)  # shuffle once, fixed seed
 
-    if max_train > 0:
-        train = train.head(max_train)
-
-    print(f"\nPreparing LoRA training data (prompt_style={prompt_style}) ...")
-    write_jsonl(train, DATA_DIR / "train.jsonl", prompt_style=prompt_style)
-    write_jsonl(val,   DATA_DIR / "valid.jsonl", prompt_style=prompt_style)
-    print("Done. Train with:")
-    print("  python -m mlx_lm.lora --config scripts/lora_config.yaml")
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    print(f"severity mix: {train['severity'].value_counts(normalize=True).round(3).to_dict()}")
+    write_jsonl(train, out / "train.jsonl", MAX_TRAIN_TOKENS)
+    write_jsonl(val.sample(args.n_valid, random_state=0), out / "valid.jsonl", MAX_TRAIN_TOKENS)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--max-train", type=int, default=0,
-                        help="cap on training examples (0 = all)")
-    parser.add_argument("--prompt-style", default="default",
-                        choices=list(USER_TEMPLATES.keys()),
-                        help="prompt format variant to use for LoRA training data")
-    args = parser.parse_args()
-    prepare(args.max_train, prompt_style=args.prompt_style)
+    main()

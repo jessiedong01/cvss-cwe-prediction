@@ -16,3 +16,14 @@ adapters/
 mlx_model/
 *.npz
 wandb/
+.venv/
+adapters*/
+data/lora/
+paper/*.aux
+paper/*.log
+paper/*.bbl
+paper/*.blg
+paper/*.out
+arxiv/
+cve-paper-arxiv.tar.gz
+paper/*.aux

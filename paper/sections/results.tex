@@ -1,0 +1,108 @@
+\section{Results}\label{sec:results}
+
+\input{tables/main}
+
+\subsection{Main Results}
+Table~\ref{tab:main} gives all systems on the \nTest{} test CVEs.
+The fine-tuned Phi-3.5 model leads on every metric.
+It reaches \nLoRAfSev\% severity accuracy, \nLoRAfCwe\% CWE accuracy, a score MAE of \nLoRAfMae{}, and an exact vector on \nLoRAfVec\% of CVEs.
+
+Because every system is scored on the same CVEs, we can compare them directly with a paired bootstrap.
+Relative to TF-IDF logistic regression with formula scoring, the fine-tuned model changes severity accuracy by \nDiffLRfSev{} points (95\% CI \nDiffLRfSevLo{} to \nDiffLRfSevHi{}), macro-F1 by \nDiffLRfFone{} (\nDiffLRfFoneLo{} to \nDiffLRfFoneHi{}), CWE accuracy by \nDiffLRfCwe{} (\nDiffLRfCweLo{} to \nDiffLRfCweHi{}), score MAE by \nDiffLRfMae{} (\nDiffLRfMaeLo{} to \nDiffLRfMaeHi{}), and exact-vector rate by \nDiffLRfVec{} (\nDiffLRfVecLo{} to \nDiffLRfVecHi{}).
+No interval includes zero.
+The gains are consistent but modest, and TF-IDF remains a strong baseline.
+
+\subsection{Direct vs.\ Formula Scoring}
+For logistic regression, computing the score from the predicted vector helps.
+Score MAE falls from \nLRdMae{} to \nLRfMae{} and macro-F1 rises from \nLRdFone\% to \nLRfFone\%, while accuracy stays at \nLRfSev\%.
+The gain comes from the two rare tiers (Table~\ref{tab:tiers}): \textsc{Low} F1 rises from \nLRdFoneLow\% to \nLRfFoneLow\%, and \textsc{Critical} F1 from \nLRdFoneCritical\% to \nLRfFoneCritical\%, as \textsc{Critical} recall rises from \nLRdRecCritical\% to \nLRfRecCritical\%.
+
+This is a trade, not a free gain.
+The formula system predicts \textsc{Critical} for \nLRfCritPred{} CVEs where NVD has \nLRfCritTrue{}, and its precision on that tier falls from \nLRdCritPrec\% to \nLRfCritPrec\%.
+The formula system scores \nLRfNineEight\% of test CVEs at exactly 9.8, the score of the most common critical vector (network, low complexity, no privileges, no interaction, high impact), against \nNvdNineEight\% in NVD, and its mean signed score error is \nLRfBias{}, against \nLRdBias{} for ridge regression.
+For a triage queue, catching more critical CVEs at the cost of more false alarms may be the right trade, but it is a choice, not an improvement on every axis.
+
+For the random forest, the formula hurts: accuracy falls from \nRFdSev\% to \nRFfSev\% and MAE rises from \nRFdMae{} to \nRFfMae{}.
+Its component predictions are less accurate, and the formula passes those errors through.
+
+The fine-tuned model shows almost no difference between the two modes.
+It wrote a score that matches the CVSS formula for its own vector on \nLoRAScoreCons\% of test CVEs, and a severity that matches its own score on \nLoRASevCons\% (Table~\ref{tab:consistency}).
+Trained on targets that list the components first, it behaves as if it applies the formula to its own vector.
+
+\input{tables/tiers}
+
+\subsection{Error Analysis}
+\paragraph{Severity tiers.}
+\textsc{Low} remains the hardest tier for every system (Table~\ref{tab:tiers}).
+It is under 2\% of the training data, and both systems most often label a true \textsc{Low} CVE as \textsc{Medium}.
+Class-balanced weights raise \textsc{Low} recall to \nLRBfRecLow\% for TF-IDF. The fine-tuned model, trained without rebalancing, reaches \nLoRAfRecLow\%.
+Figure~\ref{fig:confusion} shows that most remaining confusion is between adjacent tiers.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_confusion.pdf}
+\caption{\textbf{Most severity errors fall between adjacent tiers.} Confusion matrices on the 2024 test set, normalized by true tier. Left: TF-IDF logistic regression with formula scoring. Right: fine-tuned Phi-3.5.}
+\label{fig:confusion}
+\end{figure}
+
+\paragraph{CVSS components.}
+Figure~\ref{fig:components} gives accuracy per component.
+Attack complexity, scope, attack vector and user interaction are above 90\% for both systems. Descriptions usually state them outright.
+Privileges required is the hardest (\nLRfCompPR\% for TF-IDF, \nLoRAfCompPR\% fine-tuned), followed by the impact components.
+The fine-tuned model's largest gains are on confidentiality (\nLRfCompC\% to \nLoRAfCompC\%), integrity (\nLRfCompI\% to \nLoRAfCompI\%) and privileges required, the components that depend least on surface keywords.
+\citet{marchiori2025canllms} found that general-purpose LLMs fall behind embedding-based classifiers on the impact components. After fine-tuning, those are among the components where our model gains most over TF-IDF.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig_components.pdf}
+\caption{\textbf{Fine-tuning gains most on privileges, confidentiality, and integrity.} Accuracy per CVSS component on 2024 CVEs. TF-IDF and the fine-tuned model are scored on the full test set, the zero-shot model on its \nSub{}-CVE sample.}
+\label{fig:components}
+\end{figure}
+
+\paragraph{Rare CWEs.}
+The TF-IDF classifiers can only output the 100 most frequent training CWEs, so they score 0\% on the \nRareCweN{} test CVEs whose CWE is rarer.
+The fine-tuned model writes the CWE as text and is right on \nLoRAfRareCwe\% of them (Figure~\ref{fig:cwe}).
+Common, explicitly named weaknesses such as cross-site scripting and SQL injection are close to solved by both systems.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig_cwe_frequency.pdf}
+\caption{\textbf{Only the fine-tuned model can name rare CWEs.} CWE accuracy on the 2024 test set against the number of training examples with that CWE. Each point is a CWE with at least 20 test CVEs. Point size grows with test count.}
+\label{fig:cwe}
+\end{figure}
+
+\paragraph{Score distribution.}
+Ridge regression produces a smooth spread of scores that NVD never assigns, and it rarely predicts the extremes (Figure~\ref{fig:scores}).
+The fine-tuned model's scores sit on the same discrete values as NVD's, but it predicts the most common critical score, 9.8, for \nLoRAfNineEight\% of test CVEs, where NVD assigns it to \nNvdNineEight\%.
+It predicts \textsc{Critical} for \nLoRAfCritPred{} test CVEs, against \nLoRAfCritTrue{} in NVD, with \nLoRAfCritPrec\% precision, and like formula-scored logistic regression it scores high on average (mean signed error \nLoRAfBias).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.75\linewidth]{figures/fig_score_dist.pdf}
+\caption{\textbf{Ridge regression smooths scores, and the fine-tuned model over-predicts 9.8.} Predicted against NVD base scores on the 2024 test set, in bins of 0.25.}
+\label{fig:scores}
+\end{figure}
+
+\subsection{Zero-Shot Baseline}
+\input{tables/subset}
+Without fine-tuning, the same base model is far weaker (Table~\ref{tab:subset}).
+On \nSub{} random test CVEs it returned valid JSON for \nZSParse\%, but the severity it writes is biased upward: it labels \nZSCritShare\% of them \textsc{Critical}, against \nSubCritShare\% in NVD, and it predicts \textsc{Medium} only \nZSMediumCount{} times although \nSubMediumShare\% of these CVEs are \textsc{Medium}.
+Its written severity is right on \nZSdSev\% of CVEs.
+Its outputs also contradict themselves: the score it writes matches the formula for its own vector on only \nZSScoreCons\% of CVEs, and the severity it writes matches its own score on \nZSSevCons\% (Table~\ref{tab:consistency}).
+Computing severity from its vector removes the inconsistency and raises severity accuracy to \nZSfSev\%, still well below the fine-tuned model (\nLoRAfSubSev\%) and TF-IDF (\nLRfSubSev\%) on the same CVEs. Its score MAE gets worse, from \nZSdMae{} to \nZSfMae{}, because its vectors are often wrong in ways that move the score a lot.
+For a model used zero-shot, formula scoring is first a consistency fix.
+
+\input{tables/consistency}
+
+\subsection{Training and Inference Cost}
+Validation accuracy rose at every checkpoint, and the last one (step \nBestStep) was best (Figure~\ref{fig:val}). One more epoch might help further.
+\input{tables/compute}
+Table~\ref{tab:compute} gives wall-clock times.
+Fine-tuning took \nLoraTrainHours{} hours and scoring the full test year \nLoraTestHours{} hours, against \nTfidfMinutes{} minutes for every TF-IDF baseline together.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.55\linewidth]{figures/fig_val_curve.pdf}
+\caption{\textbf{Validation metrics still improve at the end of the first epoch.} Fine-tuned model with formula scoring, at each saved checkpoint, on 1,000 validation CVEs.}
+\label{fig:val}
+\end{figure}
