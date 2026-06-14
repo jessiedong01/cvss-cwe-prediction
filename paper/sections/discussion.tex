@@ -1,79 +1,72 @@
 \section{Discussion}\label{sec:discussion}
 
-\subsection{The Two Systems Fail on Different CVEs}
-A difference of a few points in accuracy says little about whether two systems make the same mistakes.
-On this test set they do not.
-Both systems get the severity right on \nBothSev\% of CVEs and both get it wrong on \nNeitherSev\%.
-On the remaining \nLoRAOnlySev\% only the fine-tuned model is right, and on \nLROnlySev\% only TF-IDF is.
-One or the other is therefore correct on \nEitherSev\% of CVEs, well above the \nLoRAfSev\% of the better system alone.
-The pattern repeats for the CWE (either correct on \nEitherCwe\%, against \nLoRAfCwe\%) and for the exact vector (\nEitherVec\% against \nLoRAfVec\%).
-No ensemble was tested here, so this is an upper bound rather than a result, but it suggests that the two systems read descriptions differently and that a combination would be worth trying.
+In our evaluation, a fine-tuned small language model recovers NVD enrichment from text more accurately than classical baselines, but by less than the difference in model size would suggest.
+We examine where the two trained systems disagree, what their errors look like on individual CVEs, and what this implies for deploying either system, and we outline directions for future work.
 
-\subsection{What a Near Miss Looks Like}
-The exact-vector rate is a severe metric: one wrong component out of eight counts as a miss.
-Most misses are small.
-The fine-tuned model gets every component right on \nLoRAfVecZero\% of test CVEs, exactly one wrong on \nLoRAfVecOne\%, two wrong on \nLoRAfVecTwo\%, and three or more wrong on \nLoRAfVecThreePlus\%.
-TF-IDF has the same shape (\nLRfVecZero\%, \nLRfVecOne\%, \nLRfVecTwo\%, and \nLRfVecThreePlus\%).
-When exactly one component is wrong, it is privileges required \nLoRAfSolePR\% of the time for the fine-tuned model and \nLRfSolePR\% for TF-IDF.
-Availability impact is a distant second, at \nLoRAfSoleAvail\% and \nLRfSoleAvail\%.
+\paragraph{The two trained systems make complementary errors.}
+A difference of a few points in accuracy says little about whether two systems make the same mistakes, and on this test set they do not.
+Both systems label the severity correctly on \nBothSev\% of CVEs and both fail on \nNeitherSev\%.
+On the remaining \nLoRAOnlySev\% only the fine-tuned model is correct, and on \nLROnlySev\% only TF-IDF is.
+One or the other is therefore correct on \nEitherSev\% of CVEs, well above the \nLoRAfSev\% of the better system alone.
+The pattern repeats for the CWE (either correct on \nEitherCwe\% against \nLoRAfCwe\%) and for the exact vector (\nEitherVec\% against \nLoRAfVec\%).
+We did not build an ensemble, so these figures are an upper bound rather than a result, but they indicate that the two systems read descriptions differently and that a combination is worth pursuing.
+
+\paragraph{Most vector misses are single-component misses, and the missing information is often absent from the text.}
+The exact-vector rate is a severe metric, since one wrong component out of eight counts as a miss, and most misses are small.
+The fine-tuned model gets every component right on \nLoRAfVecZero\% of test CVEs, exactly one wrong on \nLoRAfVecOne\%, two wrong on \nLoRAfVecTwo\%, and three or more wrong on \nLoRAfVecThreePlus\%, and TF-IDF has the same shape (\nLRfVecZero\%, \nLRfVecOne\%, \nLRfVecTwo\%, and \nLRfVecThreePlus\%).
+When exactly one component is wrong, it is privileges required \nLoRAfSolePR\% of the time for the fine-tuned model and \nLRfSolePR\% for TF-IDF, with availability impact a distant second at \nLoRAfSoleAvail\% and \nLRfSoleAvail\%.
 
 \input{tables/examples}
 
 Table~\ref{tab:examples} shows what this looks like on individual CVEs.
-CVE-2024-0003, the running example, is a privileges-required miss.
+CVE-2024-0003, our running example, is a privileges-required miss.
 The description says a ``malicious user'' can create an account through ``a remote administrative service.''
-NIST read ``administrative'' as meaning the attacker already holds high privileges and scored the CVE \nExPurityTrue{}.
-The model read ``malicious user'' as an outsider, set privileges required to none, and produced \nExPurityPred{}.
-Every other component matched.
-The same single-word ambiguity turns a \textsc{High} into a \textsc{Critical}, which is why this one component accounts for so much of the gap between partial-match and exact-match accuracy.
-CVE-2024-0008 is a user-interaction miss of the same kind.
-PAN-OS management sessions that do not expire are scored \nExPanOSTrue{} by NVD, with user interaction required, and the model, seeing no mention of a user, scored them \nExPanOSPred{}.
-In both cases the model's reading is defensible from the text.
-The information it lacks is not in the description.
+NIST read ``administrative'' as meaning the attacker already holds high privileges and scored the CVE \nExPurityTrue{}, whereas the model read ``malicious user'' as an outsider, set privileges required to none, and produced \nExPurityPred{} with every other component matching.
+A single ambiguous word turns a \textsc{High} into a \textsc{Critical}, which is why this one component accounts for so much of the gap between partial-match and exact-match accuracy.
+CVE-2024-0008 is a user-interaction miss of the same kind: PAN-OS management sessions that do not expire are scored \nExPanOSTrue{} by NVD with user interaction required, and the model, seeing no mention of a user, scored them \nExPanOSPred{}.
+In both cases the model's reading is defensible from the text, and the information it lacks is not in the description.
 
-\subsection{The Low Tier}
-Every system is worst on \textsc{Low}, and the reason is not only that the tier is rare.
+\paragraph{The Low tier fails for a reason beyond its rarity.}
 Table~\ref{tab:tiermae} gives score MAE by true tier.
-On \textsc{Critical} CVEs the fine-tuned model's score is off by \nLoRAfMaeCritical{} on average, on \textsc{High} by \nLoRAfMaeHigh{}, on \textsc{Medium} by \nLoRAfMaeMedium{}, and on \textsc{Low} by \nLoRAfMaeLow{}.
-Ridge regression, which never commits to a vector, does no better on them, at \nLRdMaeLow{}.
-A \textsc{Low} CVE that the model gets wrong is usually not wrong by one tier.
+The fine-tuned model's score is off by \nLoRAfMaeCritical{} on average for \textsc{Critical} CVEs, by \nLoRAfMaeHigh{} for \textsc{High}, by \nLoRAfMaeMedium{} for \textsc{Medium}, and by \nLoRAfMaeLow{} for \textsc{Low}, and ridge regression, which never commits to a vector, does no better on \textsc{Low} at \nLRdMaeLow{}.
+A \textsc{Low} CVE that the model gets wrong is usually wrong by more than one tier.
 
 \input{tables/tiers_mae}
 
 The examples show why.
 CVE-2024-0257 describes a heap-based buffer overflow in RoboDK that ``may crash the application.''
-NVD scored it \nExRoboDKTrue{}, with limited impact, because the attack needs a crafted project file and the worst outcome mentioned is a crash.
-The model scored it \nExRoboDKPred{}, with high impact on all three dimensions, which is the typical score for a heap overflow in the training data.
+NVD scored it \nExRoboDKTrue{} with limited impact, because the attack needs a crafted project file and the worst outcome mentioned is a crash, while the model scored it \nExRoboDKPred{} with high impact on all three dimensions, the typical score for a heap overflow in the training data.
 It applied the prior for the weakness type and ignored the limiting clause.
 CVE-2024-10214, a Mattermost bug that issues two sessions during desktop single sign-on, is scored \nExMattermostTrue{} by NVD and \nExMattermostPred{} by the model, which read a session-handling flaw as an authentication bypass.
-Both errors run in the same direction.
-When a description contains words associated with serious weaknesses, the model scores the weakness rather than the sentence.
-Class-balanced weights help TF-IDF on this tier, and the equivalent for the fine-tuned model, oversampling \textsc{Low} during training, was not tried.
+Both errors run in the same direction: when a description contains words associated with serious weaknesses, the model scores the weakness rather than the sentence.
+Class-balanced weights help TF-IDF on this tier, and we did not try the equivalent for the fine-tuned model, which would be oversampling \textsc{Low} during training.
 
-\subsection{Short Descriptions}
+\paragraph{Both systems degrade on short descriptions, and fine-tuning does not rescue them.}
 Table~\ref{tab:length} splits the test set into quartiles of description length.
 Both systems do worst on the shortest quarter, under \nLenBB{} characters, where the fine-tuned model reaches \nLoRAfSevQA\% severity accuracy and TF-IDF \nLRfSevQA\%.
-Accuracy rises through the middle quartiles and levels off, with the fine-tuned model at \nLoRAfSevQC\% on the third quartile and \nLoRAfSevQD\% on the longest.
-The exact-vector rate follows the same curve.
-The shortest descriptions are often a product name and a weakness class with nothing else, as in CVE-2024-0057 (``.NET, .NET Framework, and Visual Studio Security Feature Bypass Vulnerability''), and for those the score has to come from the prior for that vendor and weakness.
-The fine-tuned model's lead over TF-IDF is similar in every quartile, so the extra capacity does not specifically rescue short inputs.
+Accuracy rises through the middle quartiles and levels off, with the fine-tuned model at \nLoRAfSevQC\% on the third quartile and \nLoRAfSevQD\% on the longest, and the exact-vector rate follows the same curve.
+The shortest descriptions are often a product name and a weakness class with nothing else, as in CVE-2024-0057 (``.NET, .NET Framework, and Visual Studio Security Feature Bypass Vulnerability''), and for those the score must come from the prior for that vendor and weakness.
+The fine-tuned model's lead over TF-IDF is similar in every quartile, so the additional capacity does not specifically help short inputs.
 
 \input{tables/length}
 
-\subsection{CWE Disagreements}
+\paragraph{Some CWE errors are disagreements with the analyst, not with the text.}
 Two of the examples in Table~\ref{tab:examples} have an exact vector and a wrong CWE.
 For CVE-2024-0204, an authentication bypass in GoAnywhere MFT, NVD assigned CWE-425 (direct request) and the model CWE-287 (improper authentication).
-For CVE-2024-0149, an NVIDIA driver flaw that allows ``unauthorized access to files'' leading to ``limited information disclosure,'' NVD assigned CWE-125 (out-of-bounds read) and the model CWE-200 (exposure of sensitive information).
-In the second case the description never mentions a bounds violation.
+For CVE-2024-0149, an NVIDIA driver flaw that allows ``unauthorized access to files'' leading to ``limited information disclosure,'' NVD assigned CWE-125 (out-of-bounds read) and the model CWE-200 (exposure of sensitive information), although the description never mentions a bounds violation.
 The NVD label records what the analyst learned from the advisory, and the model's label records what the description says.
-Some share of the CWE errors reported in Table~\ref{tab:main} are of this kind, and the CWE accuracy of any description-only system is bounded by it.
+Some share of the CWE errors in Table~\ref{tab:main} are of this kind, and the CWE accuracy of any description-only system is bounded by it.
 
-\subsection{Choosing a System}
-The results point to a simple division.
-TF-IDF logistic regression trains in minutes, needs no GPU, and gives up a few points on every field.
-Formula scoring should be used with it, since it costs nothing and fixes the rare tiers, unless precision on \textsc{Critical} matters more than recall.
-The fine-tuned model is better on every field, produces consistent scores and vectors, and can name CWEs outside the frequent set.
-It costs \nLoraTrainHours{} hours to train and about half a second per CVE at inference, which is fast enough for the daily volume of new CVEs.
+\paragraph{Deployment.}
+The results point to a simple division of labor.
+TF-IDF logistic regression trains in minutes, needs no GPU, and gives up a few points on every field, and it should be used with formula scoring, which costs nothing and repairs the rare tiers, unless precision on \textsc{Critical} matters more than recall.
+The fine-tuned model is better on every field, produces consistent scores and vectors, and can name CWEs outside the frequent set, at a cost of \nLoraTrainHours{} hours of training and about half a second per CVE at inference, which is fast enough for the daily volume of new disclosures.
 The zero-shot model should not be used for this task.
-Its written severities are wrong more often than they are right, and even the vector-derived ones trail both trained systems.
-Whichever system is chosen, the \textsc{Low} tier and the privileges-required component should be treated as unreliable, and a CVE scored 9.8 by either trained system deserves a second look before it jumps the queue.
+Whichever system is deployed, the \textsc{Low} tier and the privileges-required component should be treated as unreliable, and a CVE scored 9.8 by either trained system deserves review before it moves to the front of a queue.
+
+\paragraph{Future work.}
+Several extensions follow directly from these findings.
+Oversampling \textsc{Low} or weighting its loss should be tried for the fine-tuned model, since the same change helped TF-IDF.
+A combination of the two trained systems, by agreement or by confidence, would test whether the \nEitherSev\% upper bound can be approached.
+A second training epoch is cheap, and the validation curve suggests it would help.
+Larger open models fine-tuned the same way, and an evaluation on CVSS v4.0 vectors, would show whether these results hold beyond the setting we study.

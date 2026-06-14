@@ -1,27 +1,24 @@
 \section{Limitations}\label{sec:limitations}
 
 \paragraph{Label noise.}
-NVD vectors are treated as ground truth, but analysts disagree, NVD revises records, and reporting organizations sometimes score the same CVE differently.
+We treat NVD vectors as ground truth even though analysts disagree, NVD revises its records, and reporting organizations sometimes score the same CVE differently.
 Section~\ref{sec:discussion} shows several errors that a reviewer would accept as alternative readings.
-The data snapshot is pinned so that the reported numbers stay fixed as the labels change.
+We pin the data snapshot so that our numbers stay fixed as the labels change.
 
 \paragraph{Single split and seed.}
-Evaluation covers one test year, and each model is trained once.
-The bootstrap intervals capture the sampling of test CVEs and nothing about variation from training.
-Only one 3.8B model was fine-tuned, for one epoch, and its validation accuracy was still rising at the end (Table~\ref{tab:ckpt}).
-Larger models or longer training may do better.
-Large hosted models were not run, and the fine-tuned model was trained without any rebalancing of the rare tier.
+We evaluate on one test year and train each model once, so the bootstrap intervals capture the sampling of test CVEs and nothing about variation from training.
+We fine-tune one 3.8B model for one epoch, and its validation accuracy was still rising at the end (Table~\ref{tab:ckpt}), so larger models or longer training may do better.
+We did not run large hosted models, and we trained the fine-tuned model without rebalancing the rare tier.
 
 \paragraph{No ensemble.}
-The disagreement between the two trained systems (Section~\ref{sec:discussion}) is reported as an upper bound on what a combination could achieve.
-No combination was built or tested.
+We report the disagreement between the two trained systems as an upper bound on what a combination could achieve, and we did not build or test one.
 
 \paragraph{CVSS version.}
 New CVEs increasingly carry CVSS v4.0 vectors.
-The formula approach carries over, since v4.0 also computes the score from the vector, but nothing here was tested on v4.0 data.
+The formula approach carries over, since v4.0 also computes the score from the vector, but we tested nothing on v4.0 data.
 
 \paragraph{Zero-shot sample.}
-The zero-shot model is evaluated on \nSub{} random test CVEs rather than the full year, and the intervals in Table~\ref{tab:subset} reflect the smaller sample.
+We evaluate the zero-shot model on \nSub{} random test CVEs rather than the full year, and the intervals in Table~\ref{tab:subset} reflect the smaller sample.
 
 \paragraph{Input length.}
-Only English descriptions are used, and descriptions are cut at 2,000 characters, which affects \nTestClipped\% of test CVEs.
+We use only English descriptions and cut them at 2,000 characters, which affects \nTestClipped\% of test CVEs.
