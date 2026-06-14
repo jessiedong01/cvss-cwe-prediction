@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\caption{Test CVEs discussed in Section~\ref{sec:discussion}, with the NVD labels and the output of the fine-tuned model. The last column lists the vector components the model got wrong.}
+\label{tab:examples}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lp{5.3cm}p{1.9cm}p{1.9cm}l@{}}
+\toprule
+CVE & Description & NVD & Predicted & Wrong \\
+\midrule
+\texttt{CVE-2024-0003} & A condition exists in FlashArray Purity whereby a malicious user could use a remote administrative service to create an account on the array allowing privileged access. & 7.2 High, CWE-269 & 9.8 Critical, CWE-287 & PR \\
+\texttt{CVE-2024-0008} & Web sessions in the management interface in Palo Alto Networks PAN-OS software do not expire in certain situations, making it susceptible to unauthorized access. & 8.8 High, CWE-613 & 9.8 Critical, CWE-613 & UI \\
+\texttt{CVE-2024-0257} & RoboDK v5.5.4 is vulnerable to heap-based buffer overflow while processing a specific project file. The resulting memory corruption may crash the application. & 3.3 Low, CWE-122 & 7.8 High, CWE-787 & C, I, A \\
+\texttt{CVE-2024-10214} & Mattermost versions 9.11.X \textless{}= 9.11.1, 9.5.x \textless{}= 9.5.9 icorrectly issues two sessions when using desktop SSO - one in the browser and one in desktop with incorrect settings. & 3.5 Low, CWE-303 & 9.8 Critical, CWE-287 & PR, UI, C, I, A \\
+\texttt{CVE-2024-0204} & Authentication bypass in Fortra's GoAnywhere MFT prior to 7.4.1 allows an unauthorized user to create an admin user via the administration portal. & 9.8 Critical, CWE-425 & 9.8 Critical, CWE-287 & none \\
+\texttt{CVE-2024-0149} & NVIDIA GPU Display Driver for Linux contains a vulnerability which could allow an attacker unauthorized access to files. A successful exploit of this vulnerability might lead to limited information disclosure. & 3.3 Low, CWE-125 & 3.3 Low, CWE-200 & none \\
+\bottomrule
+\end{tabular}
+\end{table}
