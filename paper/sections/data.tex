@@ -6,35 +6,32 @@ The outputs are the eight CVSS v3.1 base metrics (attack vector, attack complexi
 Figure~\ref{fig:task} shows one example.
 
 \paragraph{Source.}
-NVD records come from the Fraunhofer FKIE mirror of the NVD JSON feeds~\citep{fkie2026nvdfeeds}, pinned to release \texttt{v2026.10.05-000016}.
+We take NVD records from the Fraunhofer FKIE mirror of the NVD JSON feeds~\citep{fkie2026nvdfeeds}, pinned to release \texttt{v2026.10.05-000016}.
 NVD revises records over time, and a fixed release keeps every number in this paper reproducible.
 
 \paragraph{Filtering.}
-A CVE is kept if it has an English description of at least 20 characters, a CVSS v3.x base metric with a severity tier, and a specific CWE.
-The placeholders \texttt{NVD-CWE-noinfo} and \texttt{NVD-CWE-Other} do not count.
-When a CVE carries several CVSS entries, the primary score assigned by NIST is used.
-This leaves \nAll{} CVEs from 2022 to 2024.
-\nVThreeZero{} of them use CVSS v3.0 and the rest v3.1, and the base-score equations of the two versions agree on every one.
+We keep a CVE if it has an English description of at least 20 characters, a CVSS v3.x base metric with a severity tier, and a specific CWE, excluding the placeholders \texttt{NVD-CWE-noinfo} and \texttt{NVD-CWE-Other}.
+When a CVE carries several CVSS entries we use the primary score assigned by NIST.
+This leaves \nAll{} CVEs from 2022 to 2024, of which \nVThreeZero{} use CVSS v3.0 and the rest v3.1.
+The base-score equations of the two versions agree on every one of them.
 
 \paragraph{Temporal split.}
-CVEs with 2022 and 2023 identifiers form a pool of \nTrainVal{} CVEs.
-It is split 80/20 at random, stratified by severity, into \nTrain{} training and \nVal{} validation CVEs.
+CVEs with 2022 and 2023 identifiers form a pool of \nTrainVal{} CVEs, which we split 80/20 at random with severity stratification into \nTrain{} training and \nVal{} validation CVEs.
 All \nTest{} usable CVEs with 2024 identifiers form the test set.
-Validation data serve only to choose hyperparameters and checkpoints.
+We use validation data only to choose hyperparameters and checkpoints.
 Table~\ref{tab:data} gives the label distribution of each split.
 
 \input{tables/data}
 
 \paragraph{Label distribution.}
-\textsc{Low} is under 2\% of every split.
-CWEs follow a long tail: the training set has \nTrainCwes{} distinct CWEs, the test set \nTestCwes{}, and the 100 most frequent training CWEs cover \nTopCov\% of test CVEs.
+\textsc{Low} accounts for under 2\% of every split.
+CWEs follow a long tail: the training set contains \nTrainCwes{} distinct CWEs and the test set \nTestCwes{}, and the 100 most frequent training CWEs cover \nTopCov\% of test CVEs.
 
 \paragraph{CVSS calculator.}
-The CVSS v3.1 base-score equations~\citep{first2019cvss31} are implemented in full, including the floating-point-safe round-up that the specification requires.
-Applied to the true vectors, the calculator reproduces the NVD base score and severity for all \nAll{} CVEs.
-Any error in a formula-based score therefore comes from the predicted vector.
+We implement the CVSS v3.1 base-score equations~\citep{first2019cvss31} in full, including the floating-point-safe round-up that the specification requires.
+Applied to the true vectors, the calculator reproduces the NVD base score and severity for all \nAll{} CVEs, so any error in a formula-based score originates in the predicted vector.
 
 \paragraph{Excluded baseline.}
-VLAI~\citep{bonhomme2025vlai} is a public severity classifier.
-Its training data, the \texttt{CIRCL/vulnerability-scores} dataset, uses a random split over all years, and rows sampled from the training split include CVEs from 2024, 2025, and 2026.
-Scoring it on the 2024 test set would measure memorization as much as generalization, so it is left out.
+VLAI~\citep{bonhomme2025vlai} is a public severity classifier whose training data, the \texttt{CIRCL/vulnerability-scores} dataset, uses a random split over all years.
+Rows we sampled from its training split include CVEs from 2024, 2025, and 2026.
+Scoring it on the 2024 test set would measure memorization as much as generalization, so we exclude it.
