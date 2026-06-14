@@ -1,7 +1,11 @@
-Security teams prioritize newly disclosed software vulnerabilities by their CVSS vector, severity tier, and weakness class, labels that the U.S. National Vulnerability Database (NVD) supplied for most CVEs until it recently began enriching only high-priority vulnerabilities.
-As a result, most new vulnerabilities now arrive with a text description and none of the fields on which prioritization depends.
-To measure how well these fields can be supplied from the description alone, models are trained on CVEs from 2022--2023 in a pinned NVD snapshot and tested on all \nTest{} usable CVEs from 2024.
-The comparison covers TF-IDF classifiers, a 3.8B-parameter language model (Phi-3.5-mini) used zero-shot, and the same model fine-tuned with LoRA, each under two scoring schemes that either predict the CVSS score directly or compute it from the predicted vector.
-The fine-tuned model is the strongest system on every field, with \nLoRAfSev\% severity accuracy, \nLoRAfCwe\% CWE accuracy, a score MAE of \nLoRAfMae, and an exact CVSS vector on \nLoRAfVec\% of test CVEs, which places it \nDiffLRfSev{} to \nDiffLRfVec{} points ahead of TF-IDF logistic regression with paired bootstrap intervals that exclude zero.
-Computing the score from the vector helps logistic regression but trades precision on the \textsc{Critical} tier for recall, the fine-tuned model keeps its own score and vector consistent on \nLoRAScoreCons\% of CVEs, and the zero-shot model trails both trained systems on every field.
-Code, configuration files, and per-CVE predictions for every system accompany the paper so that each reported number can be regenerated from the pinned snapshot.
+Security teams rank newly disclosed vulnerabilities by their CVSS vector, the severity tier that follows from it, and their weakness class.
+Until April 2026 the National Vulnerability Database supplied these labels for most CVEs.
+It now enriches only high-priority ones, and most new vulnerabilities arrive as a text description with none of the fields that triage depends on.
+This paper measures how well those fields can be recovered from the description.
+Models are trained on CVEs from 2022 and 2023, taken from a pinned NVD snapshot, and tested on all \nTest{} usable CVEs from 2024.
+The comparison includes TF-IDF classifiers, the 3.8B-parameter Phi-3.5-mini used zero-shot, and the same model fine-tuned with LoRA, each scored two ways: by predicting the CVSS score directly or by computing it from the predicted vector.
+The fine-tuned model is the strongest system on every field, with \nLoRAfSev\% severity accuracy, \nLoRAfCwe\% CWE accuracy, and an exact CVSS vector on \nLoRAfVec\% of test CVEs.
+It leads TF-IDF logistic regression by \nDiffLRfSev{} to \nDiffLRfVec{} points, with paired bootstrap intervals that exclude zero, but the margin is small and the two systems fail on different CVEs: one or the other is correct on \nEitherSev\% of severities.
+Computing the score from the vector helps the linear model and makes every output internally consistent, at the cost of over-calling \textsc{Critical}.
+The most common near miss, for both systems, is a single wrong guess about whether the attacker needs privileges.
+Code, configuration, and per-CVE predictions accompany the paper, and every number in it is regenerated from the pinned snapshot.

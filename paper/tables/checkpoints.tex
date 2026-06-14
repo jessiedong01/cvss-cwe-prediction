@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Validation metrics of the fine-tuned model under formula scoring at each saved checkpoint, on the same 1,000 validation CVEs.}
+\label{tab:ckpt}
+\small
+\begin{tabular}{rccccc}
+\toprule
+Step & Severity acc. & Macro-F1 & CWE acc. & Score MAE & Exact vector \\
+\midrule
+1{,}000 & 68.2 & 50.8 & 65.4 & 0.83 & 52.9 \\
+2{,}000 & 72.6 & 56.9 & 67.2 & 0.73 & 55.4 \\
+3{,}000 & 74.4 & 58.5 & 71.1 & 0.66 & 62.2 \\
+4{,}000 & 76.0 & 62.1 & 73.4 & 0.65 & 63.0 \\
+5{,}000 & 76.3 & 58.6 & 74.2 & 0.63 & 63.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
