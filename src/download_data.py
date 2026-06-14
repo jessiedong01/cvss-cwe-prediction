@@ -10,7 +10,9 @@ from pathlib import Path
 import requests
 
 DATA_DIR = Path(__file__).parent.parent / "data"
-BASE_URL = "https://github.com/fkie-cad/nvd-json-data-feeds/releases/latest/download"
+# Pinned mirror snapshot so results are reproducible. NVD records change over time.
+RELEASE = "v2026.10.05-000016"
+BASE_URL = f"https://github.com/fkie-cad/nvd-json-data-feeds/releases/download/{RELEASE}"
 
 
 def download_year(year: int, force: bool = False) -> Path:

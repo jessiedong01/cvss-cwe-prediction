@@ -1,0 +1,65 @@
+\section{Introduction}
+
+When a software vulnerability is disclosed, it receives a CVE identifier and a short text description.
+The description alone does not tell a security team how urgently to act.
+For that, teams rely on structured \emph{enrichment}: a CVSS v3.1 vector that records how the flaw is exploited and what it affects, the base score (0--10) and severity tier that follow from that vector, and a CWE category for the type of weakness~\citep{first2019cvss31}.
+Scanners, patch managers, and incident responders sort their queues by these fields.
+
+For most CVEs, the National Vulnerability Database (NVD) at NIST supplied this enrichment.
+It has not kept pace.
+A backlog formed in early 2024, and on 15 April 2026 NIST announced that it will now enrich only CVEs in CISA's Known Exploited Vulnerabilities catalog, CVEs in software the federal government uses, and critical software under Executive Order 14028.
+Everything else is marked ``Lowest Priority -- not scheduled for immediate enrichment''~\citep{nist2026nvd}.
+For most new CVEs, defenders now get the description and whatever score the reporting organization chose to supply.
+
+This paper asks how well a model can fill that gap from the description alone, using only public data.
+We call this task \textbf{CVE enrichment}: given only the description, predict the eight CVSS v3.1 vector components, the base score, the severity tier, and the CWE (Figure~\ref{fig:task}).
+We compare TF-IDF classifiers, a small instruction-tuned language model used zero-shot, and the same model fine-tuned with LoRA.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw=black!45, rounded corners=2pt, align=left, font=\footnotesize, inner sep=5pt},
+  arr/.style={-{Stealth[length=5pt]}, black!60, thick}]
+\node[box, text width=4.3cm] (desc) {\textbf{Description} (CVE-2024-0003)\\[2pt]
+``A condition exists in FlashArray Purity whereby a malicious user could use a remote administrative service to create an account on the array allowing privileged access.''};
+\node[box, right=1.1cm of desc, text width=3.5cm] (vec) {\textbf{CVSS v3.1 vector}\\[2pt]
+\texttt{AV:N/AC:L/PR:H/UI:N}\\ \texttt{S:U/C:H/I:H/A:H}\\[3pt]
+\textbf{CWE}: CWE-269};
+\node[box, right=1.1cm of vec, text width=2.1cm] (score) {\textbf{Computed}\\[2pt]
+Score: 7.2\\ Severity: \textsc{High}};
+\draw[arr] (desc) -- node[above, font=\scriptsize, inner sep=2pt]{model} (vec);
+\draw[arr] (vec) -- node[above, font=\scriptsize, inner sep=2pt]{formula} (score);
+\end{tikzpicture}
+\caption{\textbf{From a CVE description to a full NVD record.} A model reads the description and predicts the eight CVSS components and the CWE. In the formula variant, the score and severity are computed from the vector with the CVSS v3.1 equations, so the three always agree.}
+\label{fig:task}
+\end{figure}
+
+Two design choices shape the study.
+First, we split by time.
+We train on CVEs from 2022--2023 and test on every usable CVE from 2024, so a model never sees the period it is scored on.
+Random splits, which several public models use, can put near-duplicate descriptions from the same product and month on both sides of the split.
+Second, we treat the score as something to \emph{compute}, not something to predict.
+The CVSS base score and severity are fixed functions of the eight vector components.
+Following \citet{elbaz2020fighting} and \citet{shahid2021cvssbert}, we predict the components and apply the CVSS formula.
+We then measure what this buys over predicting the score directly, and whether a language model's own score agrees with the vector it writes.
+
+On all \nTest{} test CVEs, the fine-tuned model is the best system on every field (Figure~\ref{fig:headline}).
+It reaches \nLoRAfSev\% severity accuracy and \nLoRAfCwe\% CWE accuracy, and it predicts the exact CVSS vector for \nLoRAfVec\% of CVEs, ahead of TF-IDF logistic regression by \nDiffLRfSev{} to \nDiffLRfVec{} points.
+Its scores agree with its own vectors on \nLoRAScoreCons\% of CVEs. The same model used zero-shot agrees with itself on only \nZSScoreCons\%.
+Fine-tuning took \nLoraTrainHours{} hours.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.68\linewidth]{figures/fig_headline.pdf}
+\caption{\textbf{Fine-tuned Phi-3.5 beats TF-IDF on every field.} Full 2024 test set (\nTest{} CVEs). TF-IDF uses logistic regression with formula scoring. Error bars are 95\% bootstrap intervals.}
+\label{fig:headline}
+\end{figure}
+
+\needspace{6\baselineskip}
+Our contributions:\nopagebreak
+\begin{itemize}
+  \item \textbf{Benchmark.} A leakage-free temporal split for CVE enrichment: \nTrainVal{} training and validation CVEs from 2022--2023 and \nTest{} test CVEs from 2024, from a pinned NVD snapshot, with a CVSS calculator that reproduces all \nAll{} NVD base scores exactly.
+  \item \textbf{Comparison.} Classical, zero-shot, and fine-tuned models on every enrichment field, with 95\% bootstrap confidence intervals.
+  \item \textbf{Analysis.} Direct versus formula-based scoring, and the self-consistency of language-model outputs.
+  \item \textbf{Release.} Code, configuration, and per-CVE predictions for every system.
+\end{itemize}

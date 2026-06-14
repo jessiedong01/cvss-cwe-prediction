@@ -1,0 +1,169 @@
+{
+  "tag": "ckpt3000",
+  "split": "val",
+  "n": 1000,
+  "seed": 0,
+  "adapter_file": "adapters/phi35/0003000_adapters.safetensors",
+  "consistency": {
+    "score_matches_components": 0.991,
+    "severity_matches_score": 1.0
+  },
+  "systems": {
+    "ckpt3000_direct": {
+      "n": 1000,
+      "parse_rate": 1.0,
+      "est": {
+        "sev": 0.742,
+        "cwe": 0.711,
+        "ae": 0.6679,
+        "partial": 0.91525,
+        "vector": 0.622,
+        "c_attack_vector": 0.922,
+        "c_attack_complexity": 0.972,
+        "c_privileges_required": 0.834,
+        "c_user_interaction": 0.943,
+        "c_scope": 0.974,
+        "c_confidentiality": 0.899,
+        "c_integrity": 0.899,
+        "c_availability": 0.879,
+        "sev_macro_f1": 0.5840744968144326
+      },
+      "ci": {
+        "sev": [
+          0.715,
+          0.769
+        ],
+        "cwe": [
+          0.684975,
+          0.741
+        ],
+        "ae": [
+          0.5952925,
+          0.7375100000000001
+        ],
+        "partial": [
+          0.90725,
+          0.923
+        ],
+        "vector": [
+          0.592,
+          0.652025
+        ],
+        "c_attack_vector": [
+          0.905975,
+          0.938
+        ],
+        "c_attack_complexity": [
+          0.962,
+          0.982
+        ],
+        "c_privileges_required": [
+          0.811,
+          0.856
+        ],
+        "c_user_interaction": [
+          0.929975,
+          0.958
+        ],
+        "c_scope": [
+          0.964,
+          0.983
+        ],
+        "c_confidentiality": [
+          0.879,
+          0.919
+        ],
+        "c_integrity": [
+          0.880975,
+          0.917
+        ],
+        "c_availability": [
+          0.858,
+          0.899025
+        ],
+        "sev_macro_f1": [
+          0.5364061127606892,
+          0.6333253317529921
+        ]
+      }
+    },
+    "ckpt3000_formula": {
+      "n": 1000,
+      "parse_rate": 1.0,
+      "est": {
+        "sev": 0.744,
+        "cwe": 0.711,
+        "ae": 0.6649,
+        "partial": 0.91525,
+        "vector": 0.622,
+        "c_attack_vector": 0.922,
+        "c_attack_complexity": 0.972,
+        "c_privileges_required": 0.834,
+        "c_user_interaction": 0.943,
+        "c_scope": 0.974,
+        "c_confidentiality": 0.899,
+        "c_integrity": 0.899,
+        "c_availability": 0.879,
+        "sev_macro_f1": 0.5852418762026005
+      },
+      "ci": {
+        "sev": [
+          0.718,
+          0.772
+        ],
+        "cwe": [
+          0.684975,
+          0.741
+        ],
+        "ae": [
+          0.5933675,
+          0.7347025
+        ],
+        "partial": [
+          0.90725,
+          0.923
+        ],
+        "vector": [
+          0.592,
+          0.652025
+        ],
+        "c_attack_vector": [
+          0.905975,
+          0.938
+        ],
+        "c_attack_complexity": [
+          0.962,
+          0.982
+        ],
+        "c_privileges_required": [
+          0.811,
+          0.856
+        ],
+        "c_user_interaction": [
+          0.929975,
+          0.958
+        ],
+        "c_scope": [
+          0.964,
+          0.983
+        ],
+        "c_confidentiality": [
+          0.879,
+          0.919
+        ],
+        "c_integrity": [
+          0.880975,
+          0.917
+        ],
+        "c_availability": [
+          0.858,
+          0.899025
+        ],
+        "sev_macro_f1": [
+          0.5373837516435962,
+          0.6349640901065287
+        ]
+      }
+    }
+  }
+}

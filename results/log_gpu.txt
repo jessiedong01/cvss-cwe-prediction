@@ -1,0 +1,70 @@
+[23:16:30] training done
+step 1000: val severity accuracy (formula) 0.6820
+step 2000: val severity accuracy (formula) 0.7260
+step 3000: val severity accuracy (formula) 0.7440
+step 4000: val severity accuracy (formula) 0.7600
+step 5000: val severity accuracy (formula) 0.7630
+best: step 5000 -> adapters/phi35/0005000_adapters.safetensors
+[23:16:30] best checkpoint: adapters/phi35/0005000_adapters.safetensors
+Loading cached splits from splits.pkl
+[23:16:36] phi35_lora: 36,325 test CVEs
+Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 7889.73it/s]
+[transformers] This model config has set a `rope_parameters['original_max_position_embeddings']` field, to be used together with `max_position_embeddings` to determine a scaling factor. Please set the `factor` field of `rope_parameters`with this ratio instead -- we recommend the use of this field over `original_max_position_embeddings`, as it is compatible with most model architectures.
+[23:24:50]   1,024/36,325  2.1 CVE/s  eta 282 min
+[23:32:38]   2,016/36,325  2.1 CVE/s  eta 272 min
+[23:40:47]   3,008/36,325  2.1 CVE/s  eta 267 min
+[23:49:05]   4,000/36,325  2.1 CVE/s  eta 262 min
+[23:57:43]   5,024/36,325  2.0 CVE/s  eta 256 min
+[00:06:07]   6,016/36,325  2.0 CVE/s  eta 249 min
+[00:14:32]   7,008/36,325  2.0 CVE/s  eta 242 min
+[00:22:42]   8,000/36,325  2.0 CVE/s  eta 234 min
+[00:31:28]   9,024/36,325  2.0 CVE/s  eta 226 min
+[00:39:46]   10,016/36,325  2.0 CVE/s  eta 218 min
+[00:48:21]   11,008/36,325  2.0 CVE/s  eta 211 min
+[00:57:00]   12,000/36,325  2.0 CVE/s  eta 203 min
+[01:05:46]   13,024/36,325  2.0 CVE/s  eta 195 min
+[01:14:40]   14,016/36,325  2.0 CVE/s  eta 188 min
+[01:23:35]   15,008/36,325  2.0 CVE/s  eta 180 min
+[01:32:28]   16,000/36,325  2.0 CVE/s  eta 173 min
+[01:41:46]   17,024/36,325  2.0 CVE/s  eta 165 min
+[01:50:40]   18,016/36,325  1.9 CVE/s  eta 157 min
+[01:59:37]   19,008/36,325  1.9 CVE/s  eta 148 min
+[02:08:42]   20,000/36,325  1.9 CVE/s  eta 140 min
+[02:18:04]   21,024/36,325  1.9 CVE/s  eta 132 min
+[02:27:17]   22,016/36,325  1.9 CVE/s  eta 124 min
+[02:36:29]   23,008/36,325  1.9 CVE/s  eta 116 min
+[02:45:51]   24,000/36,325  1.9 CVE/s  eta 107 min
+[02:50:26]   out of GPU memory at batch 32; retrying in halves
+[02:51:49]   out of GPU memory at batch 32; retrying in halves
+[02:54:55]   25,024/36,325  1.9 CVE/s  eta 99 min
+[02:59:51]   26,016/36,325  1.9 CVE/s  eta 88 min
+[03:04:48]   27,008/36,325  2.0 CVE/s  eta 79 min
+[03:09:46]   28,000/36,325  2.0 CVE/s  eta 69 min
+[03:15:52]   29,024/36,325  2.0 CVE/s  eta 60 min
+[03:21:37]   30,016/36,325  2.0 CVE/s  eta 51 min
+[03:27:31]   31,008/36,325  2.1 CVE/s  eta 43 min
+[03:33:26]   32,000/36,325  2.1 CVE/s  eta 35 min
+[03:39:39]   33,024/36,325  2.1 CVE/s  eta 26 min
+[03:45:45]   34,016/36,325  2.1 CVE/s  eta 18 min
+[03:52:21]   35,008/36,325  2.1 CVE/s  eta 10 min
+[04:03:07]   36,001/36,325  2.1 CVE/s  eta 3 min
+[04:09:32]   36,325/36,325  2.1 CVE/s  eta 0 min
+[04:09:35] phi35_lora_direct            parse 1.000  sev 0.699  macroF1 0.557  cwe 0.709  MAE 0.851  partial 0.879  vector 0.488
+[04:09:39] phi35_lora_formula           parse 1.000  sev 0.699  macroF1 0.557  cwe 0.709  MAE 0.851  partial 0.879  vector 0.488
+[04:09:39] consistency: {'score_matches_components': 0.9984858912594632, 'severity_matches_score': 0.999972470750172}
+Loading cached splits from splits.pkl
+[04:09:48] phi35_zeroshot: 2,000 test CVEs
+Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 3843.92it/s]
+[transformers] This model config has set a `rope_parameters['original_max_position_embeddings']` field, to be used together with `max_position_embeddings` to determine a scaling factor. Please set the `factor` field of `rope_parameters`with this ratio instead -- we recommend the use of this field over `original_max_position_embeddings`, as it is compatible with most model architectures.
+[04:19:29]   1,024/2,000  1.8 CVE/s  eta 9 min
+[04:30:41]   2,000/2,000  1.6 CVE/s  eta 0 min
+[04:30:42] phi35_zeroshot_direct        parse 0.997  sev 0.208  macroF1 0.154  cwe 0.257  MAE 1.578  partial 0.605  vector 0.024
+[04:30:42] phi35_zeroshot_formula       parse 0.997  sev 0.435  macroF1 0.268  cwe 0.257  MAE 2.084  partial 0.605  vector 0.024
+[04:30:42] consistency: {'score_matches_components': 0.03430619559651818, 'severity_matches_score': 0.3703324808184143}
+wrote 175 macros and 7 tables
+saved fig_confusion
+saved fig_components
+saved fig_score_dist
+saved fig_cwe_frequency
+saved fig_val_curve
+[04:31:20] ALL DONE

@@ -1,0 +1,48 @@
+\section{Methods}\label{sec:methods}
+
+\subsection{Direct and Formula Scoring}
+Every system below predicts the eight components and the CWE.
+We then produce the score and severity in one of two ways.
+\begin{description}
+  \item[Direct.] A separate model predicts the score (regression) and the severity (classification), or a language model writes them itself.
+  \item[Formula.] We apply the CVSS v3.1 equations to the predicted components. Score, severity, and vector then agree by construction.
+\end{description}
+For the TF-IDF systems, the direct score comes from a single ridge regression shared by all three classifiers.
+Their direct score errors are therefore identical, and we report them once.
+
+\subsection{TF-IDF Baselines}
+We represent each description with TF-IDF over unigrams and bigrams (sublinear term frequency, minimum document frequency 2, at most 50,000 features). We keep stop words, since words such as ``not'' and ``without'' change the meaning of a description.
+We train one classifier per output with scikit-learn~\citep{pedregosa2011sklearn}:
+\begin{itemize}
+  \item \textbf{Logistic regression (LR).} We choose $C \in \{0.3, 1, 3, 10\}$ on validation accuracy, separately for severity, CWE, and the components (one $C$ shared by all eight).
+  \item \textbf{Class-balanced LR.} The same, with class weights inversely proportional to class frequency.
+  \item \textbf{Random forest (RF).} 300 trees for severity and CWE and 100 trees per component, otherwise default settings. We did not tune it.
+  \item \textbf{Ridge regression} for the direct score, with $\alpha \in \{0.3, 1, 3, 10\}$ chosen on validation MAE.
+\end{itemize}
+The CWE classifiers learn the 100 most frequent training CWEs plus an \textsc{Other} class.
+We score them against the true CWE, so an \textsc{Other} prediction always counts as wrong.
+
+\subsection{Phi-3.5-mini}
+We use Phi-3.5-mini-instruct, a 3.8B-parameter decoder~\citep{abdin2024phi3}.
+Its training-data cutoff is October 2023, before our test period.
+
+\paragraph{Fine-tuning.}
+We fine-tune with LoRA~\citep{hu2022lora} in MLX~\citep{hannun2023mlx} on a single Apple M5 Pro with 64\,GB of unified memory.
+Adapters of rank 16 (scale 20, dropout 0.05) sit on the last 16 transformer layers: \nLoraParams{}M trainable parameters, \nLoraPct\% of the model.
+We train for 5,000 steps at batch size 8, which is one pass over the training set, with a learning rate of $10^{-4}$, 100 warm-up steps, and cosine decay to $10^{-5}$.
+The loss covers only the answer tokens.
+We drop the \nDropped{} training examples (\nDroppedPct\%) longer than 768 tokens to bound memory. Test CVEs are never dropped.
+The target is a single JSON object that lists the eight components first, then the CWE, the score, and the severity.
+The model therefore commits to a vector before it writes a score.
+We evaluate the checkpoints at steps 1,000, 2,000, \ldots, 5,000 on the same 1,000 validation CVEs and keep the one with the best severity accuracy (formula variant).
+Decoding is greedy.
+
+\paragraph{Zero-shot.}
+The same base model, without an adapter, receives the description and a prompt listing every field and its allowed values (Appendix~\ref{app:prompts}).
+Generating for every test CVE is slow for verbose zero-shot output, so we evaluate it on a random sample of \nSub{} test CVEs and rescore every other system on the same sample.
+
+\subsection{Metrics}
+For severity we report accuracy and macro-F1 over the four tiers. Macro-F1 weights \textsc{Low} as much as \textsc{Medium} and exposes failures on the rare tiers that accuracy hides.
+For CWE we report top-1 accuracy, for the score the mean absolute error (MAE), and for the vector the per-component accuracy, the mean fraction of components correct (\emph{partial match}), and the fraction of CVEs with all eight correct (\emph{exact match}).
+A language-model output that is not valid JSON counts as wrong on every field and is left out of the score MAE. We report the parse rate separately.
+We give 95\% confidence intervals from 1,000 bootstrap resamples of test CVEs.

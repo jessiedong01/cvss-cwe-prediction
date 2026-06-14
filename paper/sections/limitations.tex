@@ -1,0 +1,23 @@
+\section{Limitations}\label{sec:limitations}
+
+\paragraph{Label noise.}
+We treat NVD's vector as ground truth, but analysts disagree, NVD revises records, and the organizations that report CVEs sometimes score them differently.
+Some of our ``errors'' are disagreements a human reviewer would accept.
+We pin the data snapshot so that our numbers stay fixed even as the labels change.
+
+\paragraph{Single split and seed.}
+We test on a single year and train each model once.
+The bootstrap intervals cover sampling of test CVEs, not variation from training.
+We fine-tune one 3.8B model for one epoch, and validation accuracy was still rising at the end (Figure~\ref{fig:val}). Larger models or longer training may do better.
+We did not run large hosted models, and we did not rebalance the training data for the fine-tuned model.
+
+\paragraph{CVSS version.}
+New CVEs increasingly carry CVSS v4.0 vectors.
+The formula approach carries over, since v4.0 also computes the score from the vector, but we did not test it.
+
+\paragraph{Zero-shot sample.}
+We evaluate the zero-shot model on \nSub{} random test CVEs rather than all of them.
+The confidence intervals in Table~\ref{tab:subset} reflect this.
+
+\paragraph{Input length.}
+We use English descriptions and cut descriptions at 2,000 characters, which affects \nTestClipped\% of test CVEs.

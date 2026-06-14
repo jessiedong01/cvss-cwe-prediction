@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Fine-tuned Phi-3.5 is best on every metric.} All systems on the full 2024 test set (36{,}325 CVEs). Values are percentages except score MAE. $\pm$ gives the half-width of the 95\% bootstrap interval. Bold marks the best value in each column. The TF-IDF direct systems share one ridge regression, so their score MAE is identical.}
+\label{tab:main}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{Severity} & CWE & Score & \multicolumn{2}{c}{Vector} \\
+\cmidrule(lr){2-3}\cmidrule(lr){6-7}
+System & Acc. & Macro-F1 & Acc. & MAE $\downarrow$ & Partial & Exact \\
+\midrule
+TF-IDF + LR, direct & 67.1\,{\scriptsize$\pm$0.5} & 47.9\,{\scriptsize$\pm$0.6} & 67.2\,{\scriptsize$\pm$0.5} & 0.98\,{\scriptsize$\pm$0.01} & 86.9\,{\scriptsize$\pm$0.2} & 44.1\,{\scriptsize$\pm$0.5} \\
+TF-IDF + LR, formula & 67.1\,{\scriptsize$\pm$0.5} & 51.6\,{\scriptsize$\pm$0.8} & 67.2\,{\scriptsize$\pm$0.5} & 0.94\,{\scriptsize$\pm$0.01} & 86.9\,{\scriptsize$\pm$0.2} & 44.1\,{\scriptsize$\pm$0.5} \\
+TF-IDF + LR balanced, direct & 65.7\,{\scriptsize$\pm$0.5} & 51.9\,{\scriptsize$\pm$0.8} & 67.2\,{\scriptsize$\pm$0.5} & 0.98\,{\scriptsize$\pm$0.01} & 86.0\,{\scriptsize$\pm$0.2} & 40.5\,{\scriptsize$\pm$0.5} \\
+TF-IDF + LR balanced, formula & 67.1\,{\scriptsize$\pm$0.5} & 53.9\,{\scriptsize$\pm$0.9} & 67.2\,{\scriptsize$\pm$0.5} & 0.98\,{\scriptsize$\pm$0.01} & 86.0\,{\scriptsize$\pm$0.2} & 40.5\,{\scriptsize$\pm$0.5} \\
+TF-IDF + RF, direct & 66.9\,{\scriptsize$\pm$0.5} & 47.1\,{\scriptsize$\pm$0.6} & 65.2\,{\scriptsize$\pm$0.5} & 0.98\,{\scriptsize$\pm$0.01} & 86.1\,{\scriptsize$\pm$0.2} & 41.8\,{\scriptsize$\pm$0.5} \\
+TF-IDF + RF, formula & 64.0\,{\scriptsize$\pm$0.5} & 47.8\,{\scriptsize$\pm$0.6} & 65.2\,{\scriptsize$\pm$0.5} & 1.03\,{\scriptsize$\pm$0.01} & 86.1\,{\scriptsize$\pm$0.2} & 41.8\,{\scriptsize$\pm$0.5} \\
+Phi-3.5 + LoRA, direct & \textbf{69.9}\,{\scriptsize$\pm$0.5} & \textbf{55.7}\,{\scriptsize$\pm$0.9} & \textbf{70.9}\,{\scriptsize$\pm$0.5} & \textbf{0.85}\,{\scriptsize$\pm$0.01} & \textbf{87.9}\,{\scriptsize$\pm$0.2} & \textbf{48.8}\,{\scriptsize$\pm$0.5} \\
+Phi-3.5 + LoRA, formula & \textbf{69.9}\,{\scriptsize$\pm$0.5} & \textbf{55.7}\,{\scriptsize$\pm$0.9} & \textbf{70.9}\,{\scriptsize$\pm$0.5} & \textbf{0.85}\,{\scriptsize$\pm$0.01} & \textbf{87.9}\,{\scriptsize$\pm$0.2} & \textbf{48.8}\,{\scriptsize$\pm$0.5} \\
+\bottomrule
+\end{tabular}
+\end{table}
