@@ -41,6 +41,7 @@ SYSTEMS = {
     "zeroshot": ("Phi-3.5 zero-shot", "#1baf7a", RESULTS / "preds_phi35_zeroshot_formula_test.jsonl.gz"),
 }
 TRUTH = "#8a8985"      # neutral gray for NVD ground truth
+TRUTH_DARK = "#52514e"  # ridge regression outline (not a categorical system)
 INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 BLUES = matplotlib.colors.LinearSegmentedColormap.from_list(
     "seq", ["#ffffff", "#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"])
@@ -199,11 +200,13 @@ def fig_score_dist(data: dict) -> None:
     panels = []
     ridge = load(RESULTS / "preds_lr_direct.jsonl.gz")
     if ridge:
-        panels.append(("TF-IDF ridge regression", SYSTEMS["tfidf"][1], ridge))
+        panels.append(("TF-IDF ridge regression", TRUTH_DARK, ridge))
+    if "tfidf" in data:
+        panels.append(("TF-IDF + LR, formula", SYSTEMS["tfidf"][1], data["tfidf"]))
     if "lora" in data:
         direct = load(RESULTS / "preds_phi35_lora_direct_test.jsonl.gz")
         if direct:
-            panels.append(("Phi-3.5 + LoRA, score as written", SYSTEMS["lora"][1], direct))
+            panels.append(("Fine-tuned Phi-3.5", SYSTEMS["lora"][1], direct))
     if not panels:
         return
     bins = np.arange(0, 10.25, 0.25)

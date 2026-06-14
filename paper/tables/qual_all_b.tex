@@ -1,0 +1,32 @@
+\begin{table}[p]
+\centering
+\caption{Test CVEs on which all four trained systems predicted the wrong value for the listed component (scope and the three impacts). Bold marks words in the NVD description that may signal the true value. FT: fine-tuned Phi-3.5, LR: logistic regression, CB: class-balanced logistic regression, RF: random forest, all with formula scoring. Values: N network or none, A adjacent, L local or low, P physical, H high, R required, U unchanged, C changed.}
+\label{tab:qualallb}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llp{6.2cm}cl@{}}
+\toprule
+Component & CVE & Description & True & Predicted \\
+\midrule
+Scope & \texttt{CVE-2024-0056} & Microsoft.Data.SqlClient and System.Data.SqlClient SQL Data Provider Security Feature Bypass Vulnerability & C & FT:U LR:U CB:U RF:U \\
+ & \texttt{CVE-2024-0171} & Dell PowerEdge Server BIOS contains an TOCTOU race condition vulnerability. A local low privileged attacker could potentially exploit this vulnerability to gain access to otherwise unauthorized resources. & C & FT:U LR:U CB:U RF:U \\
+ & \texttt{CVE-2024-0179} & SMM Callout vulnerability within the AmdCpmDisplayFeatureSMM driver could allow locally authenticated attackers to overwrite SMRAM, potentially resulting in arbitrary code execution. & C & FT:U LR:U CB:U RF:U \\
+ & \texttt{CVE-2024-0410} & An authorization bypass vulnerability was discovered in GitLab affecting versions 15.1 prior to 16.7.6, 16.8 prior to 16.8.3, and 16.9 prior to 16.9.1. A developer could bypass CODEOWNERS approvals by creating a merge conflict. & C & FT:U LR:U CB:U RF:U \\
+\addlinespace[3pt]
+Confidentiality & \texttt{CVE-2024-0171} & Dell PowerEdge Server BIOS contains an TOCTOU race condition vulnerability. A local low privileged attacker could potentially exploit this vulnerability to gain access to otherwise unauthorized resources. & L & FT:H LR:H CB:H RF:H \\
+ & \texttt{CVE-2024-0257} & RoboDK v5.5.4 is vulnerable to heap-based buffer overflow while processing a specific project file. The resulting memory corruption may \textbf{crash} the application. & N & FT:H LR:H CB:H RF:H \\
+ & \texttt{CVE-2024-0403} & Recipes version 1.5.10 allows arbitrary HTTP requests to be made through the server. This is possible because the application is vulnerable to SSRF. & L & FT:H LR:H CB:N RF:H \\
+ & \texttt{CVE-2024-0677} & The Pz-LinkCard WordPress plugin through 2.5.1 does not prevent users from pinging arbitrary hosts via some of its shortcodes, which could allow high privilege users such as contributors to perform SSRF attacks. & L & FT:H LR:H CB:H RF:H \\
+\addlinespace[3pt]
+Integrity & \texttt{CVE-2024-0171} & Dell PowerEdge Server BIOS contains an TOCTOU race condition vulnerability. A local low privileged attacker could potentially exploit this vulnerability to gain access to otherwise unauthorized resources. & L & FT:H LR:H CB:H RF:H \\
+ & \texttt{CVE-2024-0257} & RoboDK v5.5.4 is vulnerable to heap-based buffer overflow while processing a specific project file. The resulting memory corruption may \textbf{crash} the application. & N & FT:H LR:H CB:H RF:H \\
+ & \texttt{CVE-2024-0741} & An out of bounds write in ANGLE could have allowed an attacker to corrupt memory leading to a potentially exploitable \textbf{crash}. This vulnerability affects Firefox \textless{} 122, Firefox ESR \textless{} 115.7, and Thunderbird \textless{} 115.7. & N & FT:H LR:H CB:H RF:H \\
+ & \texttt{CVE-2024-0749} & A phishing site could have repurposed an `about:` dialog to show phishing content with an incorrect origin in the address bar. This vulnerability affects Firefox \textless{} 122 and Thunderbird \textless{} 115.7. & L & FT:H LR:H CB:H RF:H \\
+\addlinespace[3pt]
+Availability & \texttt{CVE-2024-0009} & An improper verification vulnerability in the GlobalProtect gateway feature of Palo Alto Networks PAN-OS software enables a malicious user with stolen credentials to establish a VPN connection from an unauthorized IP address. & L & FT:H LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0068} & Improper Link Resolution Before File Access ('Link Following') vulnerability in HYPR Workforce Access on MacOS allows File Manipulation.This issue affects Workforce Access: before 8.7.1. & N & FT:H LR:H CB:H RF:H \\
+ & \texttt{CVE-2024-0160} & Dell Client Platform contains an incorrect authorization vulnerability. An attacker with physical access to the system could potentially exploit this vulnerability by bypassing BIOS authorization to modify settings in the BIOS. & H & FT:N LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0171} & Dell PowerEdge Server BIOS contains an TOCTOU race condition vulnerability. A local low privileged attacker could potentially exploit this vulnerability to gain access to otherwise unauthorized resources. & L & FT:H LR:H CB:H RF:H \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -200,6 +200,7 @@ def subset_results(full: dict) -> None:
     macro("nZSCritShare", pct(sum(_norm(r["pred_severity"]) == "CRITICAL" for r in zs_direct) / n))
     macro("nSubCritShare", pct(sum(_norm(r["true_severity"]) == "CRITICAL" for r in zs_direct) / n))
     macro("nZSMediumCount", fmt_int(sum(_norm(r["pred_severity"]) == "MEDIUM" for r in zs_direct)))
+    macro("nZSMediumShare", pct(sum(_norm(r["pred_severity"]) == "MEDIUM" for r in zs_direct) / n))
     macro("nSubMediumShare", pct(sum(_norm(r["true_severity"]) == "MEDIUM" for r in zs_direct) / n))
 
     def restrict(prefix):
@@ -597,6 +598,289 @@ CVE & Description & NVD & Predicted & Wrong \\
 """)
 
 
+# ── Tables referenced by the 2026-10-15 rewrite ──────────────────────────────
+
+COMP_NAMES = {"attack_vector": "Attack vector", "attack_complexity": "Attack complexity",
+              "privileges_required": "Privileges required", "user_interaction": "User interaction",
+              "scope": "Scope", "confidentiality": "Confidentiality", "integrity": "Integrity",
+              "availability": "Availability"}
+
+
+def year_coverage() -> None:
+    allrec = pd.read_pickle(ROOT / "data" / "cve_parsed.pkl")
+    years = allrec["cve_id"].str.extract(r"CVE-(\d{4})-")[0].astype(int)
+    for y, tag in ((2022, "A"), (2023, "B"), (2024, "C")):
+        path = ROOT / "data" / f"CVE-{y}.json"
+        if not path.exists():
+            continue
+        d = json.loads(path.read_text())
+        items = d.get("vulnerabilities", d.get("cve_items", []))
+        live = sum(1 for v in items if v.get("cve", v).get("vulnStatus") != "Rejected")
+        macro(f"nUsableShare{tag}", pct(int((years == y).sum()) / live))
+
+
+def agreement_table(full: dict) -> None:
+    lrf, lo = full["LRf"][1], full["LoRAf"][1]
+    by = {r["cve_id"]: r for r in lrf}
+    pairs = [(by[r["cve_id"]], r) for r in lo if r["cve_id"] in by]
+    rows = []
+    for name, ok in (("Severity", lambda r: _norm(r["pred_severity"]) == _norm(r["true_severity"])),
+                     ("CWE", lambda r: _norm(r["pred_cwe"]) == _norm(r["true_cwe"])),
+                     ("Exact CVSS vector", lambda r: len(_wrong(r)) == 0)):
+        a = np.array([ok(x) for x, _ in pairs]); b = np.array([ok(y) for _, y in pairs])
+        cells = [np.mean(a & b), np.mean(b & ~a), np.mean(a & ~b), np.mean(~a & ~b), np.mean(a | b)]
+        rows.append(f"{name} & " + " & ".join(pct(c) for c in cells) + r" \\")
+    (TABLES / "agreement.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Agreement between fine-tuned Phi-3.5 and TF-IDF logistic regression (formula scoring) on the 2024 test set (\%). The last column is the share of CVEs on which at least one of the two is correct.}
+\label{tab:agreement}
+\small
+\begin{tabular}{lccccc}
+\toprule
+ & Both correct & Fine-tuned only & TF-IDF only & Neither & At least one \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+def value_frequency_table(full: dict) -> None:
+    from metrics import COMPONENTS
+    lo = full["LoRAf"][1]
+    short = {"NETWORK": "Network", "ADJACENT_NETWORK": "Adjacent", "LOCAL": "Local", "PHYSICAL": "Physical",
+             "LOW": "Low", "HIGH": "High", "NONE": "None", "REQUIRED": "Required", "UNCHANGED": "Unchanged", "CHANGED": "Changed"}
+    rows = []
+    for f in COMPONENTS:
+        true = pd.Series([_norm(r["true_components"][f]) for r in lo])
+        pred = pd.Series([_norm(r["pred_components"].get(f)) for r in lo])
+        vals = [v for v in short if (true == v).any()]
+        for i, v in enumerate(vals):
+            rows.append(f"{COMP_NAMES[f] if i == 0 else ''} & {short[v]} & {pct((true == v).mean())} & {pct((pred == v).mean())} \\\\")
+        rows.append(r"\addlinespace[2pt]")
+    (TABLES / "value_freq.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Share of 2024 test CVEs (\%) with each value of each CVSS v3.1 component, as assigned by NIST and as predicted by the fine-tuned model.}
+\label{tab:valuefreq}
+\small
+\begin{tabular}{llrr}
+\toprule
+Component & Value & NVD & Fine-tuned \\
+\midrule
+""" + "\n".join(rows[:-1]) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+def zeroshot_severity_table() -> None:
+    zd = load_preds(RESULTS / "preds_phi35_zeroshot_direct_test.jsonl.gz")
+    zf = load_preds(RESULTS / "preds_phi35_zeroshot_formula_test.jsonl.gz")
+    if not zd:
+        return
+    n = len(zd)
+    rows = []
+    for c in SEVERITIES:
+        t = sum(_norm(r["true_severity"]) == c for r in zd)
+        w = sum(_norm(r["pred_severity"]) == c for r in zd)
+        f = sum(_norm(r["pred_severity"]) == c for r in zf)
+        rows.append(f"{c.title()} & {fmt_int(t)} ({pct(t / n)}) & {fmt_int(w)} ({pct(w / n)}) & {fmt_int(f)} ({pct(f / n)}) \\\\")
+    other = n - sum(_norm(r["pred_severity"]) in SEVERITIES for r in zd)
+    rows.append(f"No valid tier & -- & {fmt_int(other)} ({pct(other / n)}) & -- \\\\")
+    (TABLES / "zs_severity.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Severity tiers on the """ + macros["nSub"] + r"""-CVE zero-shot sample: as assigned by NIST, as written by zero-shot Phi-3.5, and as computed from the vector it wrote. Counts with shares (\%) in parentheses.}
+\label{tab:zssev}
+\small
+\begin{tabular}{lccc}
+\toprule
+Tier & NVD & Zero-shot, written & Zero-shot, from vector \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+def sole_component_and_gap_tables(full: dict) -> None:
+    from collections import Counter
+    from metrics import COMPONENTS
+    data = {}
+    for prefix in ("LoRAf", "LRf"):
+        recs = full[prefix][1]
+        sole = Counter(_wrong(r)[0] for r in recs if len(_wrong(r)) == 1)
+        tot = sum(sole.values())
+        sev_ok = [r for r in recs if _norm(r["pred_severity"]) == _norm(r["true_severity"])]
+        gap = Counter(min(len(_wrong(r)), 3) for r in sev_ok)
+        data[prefix] = (sole, tot, gap, len(sev_ok), len(recs))
+        miss = sum(v for k, v in gap.items() if k > 0)
+        macro(f"n{prefix}GapOne", pct(gap[1] / miss))
+        macro(f"n{prefix}GapShare", pct(miss / len(recs)))
+    rows = [f"{COMP_NAMES[f]} & {pct(data['LoRAf'][0][f] / data['LoRAf'][1], 0)} & {pct(data['LRf'][0][f] / data['LRf'][1], 0)} \\\\" for f in COMPONENTS]
+    (TABLES / "sole_component.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Which component is wrong when exactly one of the eight is wrong (\% of such CVEs), for the fine-tuned model and TF-IDF logistic regression on the 2024 test set.}
+\label{tab:sole}
+\small
+\begin{tabular}{lcc}
+\toprule
+Component & Fine-tuned & TF-IDF \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+    rows = []
+    for name, prefix in (("Fine-tuned Phi-3.5", "LoRAf"), ("TF-IDF + LR, formula", "LRf")):
+        sole, tot, gap, nok, n = data[prefix]
+        cells = [gap[0] / n, gap[1] / n, gap[2] / n, gap[3] / n]
+        rows.append(f"{name} & {pct(nok / n)} & " + " & ".join(pct(c) for c in cells) + r" \\")
+    (TABLES / "gap.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{CVEs whose severity is predicted correctly, split by how many of the eight vector components are wrong (\% of all 2024 test CVEs). Severity can be right while the vector is not, and most such CVEs have exactly one wrong component.}
+\label{tab:gap}
+\small
+\begin{tabular}{lccccc}
+\toprule
+ & Severity correct & 0 wrong & 1 wrong & 2 wrong & 3+ wrong \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+# Words that can signal the true value of a component. Used only to bold text in the
+# qualitative tables; a match is a possible clue, not a label.
+CLUES = {
+    ("attack_vector", "NETWORK"): ["remote attacker", "remotely", "network", "crafted request", "http", "url", "web"],
+    ("attack_vector", "ADJACENT_NETWORK"): ["adjacent", "bluetooth", "wi-fi", "wifi", "same network", "local network"],
+    ("attack_vector", "LOCAL"): ["local attacker", "local user", "locally", "local"],
+    ("attack_vector", "PHYSICAL"): ["physical access", "physically", "physical", "usb"],
+    ("attack_complexity", "HIGH"): ["race condition", "man-in-the-middle", "timing", "non-default", "specific configuration"],
+    ("privileges_required", "NONE"): ["unauthenticated", "without authentication", "anonymous", "remote attacker"],
+    ("privileges_required", "LOW"): ["authenticated", "low-privileged", "low privileged", "logged-in", "subscriber", "contributor"],
+    ("privileges_required", "HIGH"): ["administrator", "administrative", "admin", "high privileges", "privileged", "root"],
+    ("user_interaction", "REQUIRED"): ["crafted file", "crafted html page", "visit", "click", "open", "victim", "user"],
+    ("scope", "CHANGED"): ["cross-site scripting", "xss", "sandbox", "escape", "guest", "host"],
+    ("confidentiality", "HIGH"): ["arbitrary code", "execute", "sensitive", "credentials", "read arbitrary"],
+    ("confidentiality", "LOW"): ["limited", "partial", "some information"],
+    ("confidentiality", "NONE"): ["denial of service", "crash"],
+    ("integrity", "HIGH"): ["arbitrary code", "execute", "modify", "write"],
+    ("integrity", "LOW"): ["limited", "inject"],
+    ("integrity", "NONE"): ["denial of service", "crash", "information disclosure"],
+    ("availability", "HIGH"): ["denial of service", "dos", "crash", "arbitrary code", "execute"],
+    ("availability", "LOW"): ["limited", "degrade"],
+    ("availability", "NONE"): ["information disclosure", "read", "disclose"],
+}
+
+
+def _bold_clues(desc: str, field: str, value: str) -> str:
+    import re as _re
+    text = tex_escape(desc)
+    for kw in sorted(CLUES.get((field, value), []), key=len, reverse=True):
+        pat = _re.compile(r"(?<![\w\\])(" + _re.escape(kw) + r")(?!\w)", _re.I)
+        if pat.search(text):
+            return pat.sub(lambda m: r"\textbf{" + m.group(1) + "}", text, count=1)
+    return text
+
+
+def qualitative_tables(full: dict) -> None:
+    from metrics import COMPONENTS
+    test = pd.read_pickle(ROOT / "data" / "splits.pkl")["test"].set_index("cve_id")
+    sys_names = [("LoRAf", "FT"), ("LRf", "LR"), ("LRBf", "CB"), ("RFf", "RF")]
+    preds = {p: {r["cve_id"]: r for r in full[p][1]} for p, _ in sys_names}
+    ids = sorted(preds["LoRAf"])
+    short = {"NETWORK": "N", "ADJACENT_NETWORK": "A", "LOCAL": "L", "PHYSICAL": "P", "LOW": "L", "HIGH": "H",
+             "NONE": "N", "REQUIRED": "R", "UNCHANGED": "U", "CHANGED": "C"}
+
+    def pick(field, all_wrong):
+        out = []
+        seen_desc = set()
+        for i in ids:
+            d = test.loc[i, "description"]
+            if len(d) > 230 or d[:60] in seen_desc:
+                continue
+            wrong = [_norm(preds[p][i]["pred_components"].get(field)) != _norm(preds[p][i]["true_components"][field]) for p, _ in sys_names]
+            if (all(wrong) if all_wrong else (any(wrong) and not all(wrong))):
+                out.append(i); seen_desc.add(d[:60])
+            if len(out) == 4:
+                break
+        return out
+
+    for all_wrong, tables in ((True, ("qual_all_a", "qual_all_b")), (False, ("qual_some_a", "qual_some_b"))):
+        for half, name in zip((COMPONENTS[:4], COMPONENTS[4:]), tables):
+            rows = []
+            for f in half:
+                for k, i in enumerate(pick(f, all_wrong)):
+                    true = _norm(preds["LoRAf"][i]["true_components"][f])
+                    got = " ".join(f"{s}:{short.get(_norm(preds[p][i]['pred_components'].get(f)), '?')}" for p, s in sys_names)
+                    rows.append(f"{COMP_NAMES[f] if k == 0 else ''} & \\texttt{{{i}}} & {_bold_clues(test.loc[i, 'description'], f, true)} & {short.get(true, '?')} & {got} \\\\")
+                rows.append(r"\addlinespace[3pt]")
+            which = "all four trained systems" if all_wrong else "at least one, but not all, of the four trained systems"
+            (TABLES / f"{name}.tex").write_text(r"""\begin{table}[p]
+\centering
+\caption{Test CVEs on which """ + which + r""" predicted the wrong value for the listed component (""" + ("attack vector, attack complexity, privileges required, and user interaction" if half == COMPONENTS[:4] else "scope and the three impacts") + r"""). Bold marks words in the NVD description that may signal the true value. FT: fine-tuned Phi-3.5, LR: logistic regression, CB: class-balanced logistic regression, RF: random forest, all with formula scoring. Values: N network or none, A adjacent, L local or low, P physical, H high, R required, U unchanged, C changed.}
+\label{tab:""" + name.replace("_", "") + r"""}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llp{6.2cm}cl@{}}
+\toprule
+Component & CVE & Description & True & Predicted \\
+\midrule
+""" + "\n".join(rows[:-1]) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+def summary_table(full: dict) -> None:
+    """Main-text results table: no intervals, bold best and underline second best."""
+    rows_def = [("TF-IDF + LR", "LRd", "LRf"), ("TF-IDF + CB-LR", "LRBd", "LRBf"), ("TF-IDF + RF", "RFd", "RFf"),
+                ("Fine-tuned Phi-3.5", "LoRAd", "LoRAf")]
+    metrics_ = [("sev", 1), ("sev_macro_f1", 1), ("cwe", 1), ("ae", -1), ("vector", 1)]
+    S = {p: summarize(full[p][1]) for _, a, b in rows_def for p in (a, b) if full[p][1]}
+    body = []
+    for mode, idx in (("direct", 1), ("formula", 2)):
+        prefixes = [r[idx] for r in rows_def]
+        for key, sign in metrics_:
+            vals = sorted({round(S[p]["est"][key], 3) for p in prefixes}, key=lambda v: -sign * v)
+            S.setdefault("_rank", {})[(mode, key)] = vals
+        for name, *ps in rows_def:
+            p = ps[idx - 1]
+            cells = []
+            for key, sign in metrics_:
+                v = S[p]["est"][key]
+                txt = f"{v:.2f}" if key == "ae" else f"{100 * v:.1f}"
+                ranks = S["_rank"][(mode, key)]
+                r = ranks.index(round(v, 3))
+                cells.append(r"\textbf{" + txt + "}" if r == 0 else (r"\underline{" + txt + "}" if r == 1 else txt))
+            mark = r"$^{\diamond}$" if mode == "formula" else ""
+            body.append(f"{name}{mark} & " + " & ".join(cells) + r" \\")
+        body.append(r"\midrule" if mode == "direct" else "")
+    (TABLES / "summary.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Results on enriching test (2024) CVEs. Systems marked $^{\diamond}$ predict CVSS scores by predicting vectors and computing the score using the CVSS formula. For each scoring method, bold highlights the best performing system and underline indicates second best. See Table~\ref{tab:main} for all results.}
+\label{tab:summary}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+System & Severity acc. & Severity macro-F1 & CWE acc. & Score MAE $\downarrow$ & Exact CVSS \\
+\midrule
+""" + "\n".join(b for b in body if b) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
 def misc_numbers() -> None:
     # Training ran in the first pipeline attempt; the second resumed at evaluation.
     log = next((p for p in (RESULTS / "log_gpu_attempt1.txt", RESULTS / "log_gpu.txt")
@@ -666,6 +950,13 @@ def main() -> None:
     zero_shot_components()
     checkpoint_table()
     examples_table(full)
+    year_coverage()
+    agreement_table(full)
+    value_frequency_table(full)
+    zeroshot_severity_table()
+    sole_component_and_gap_tables(full)
+    qualitative_tables(full)
+    summary_table(full)
     component_and_rare_cwe(full)
     compute_table()
     misc_numbers()

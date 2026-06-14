@@ -1,0 +1,34 @@
+\section{Full Results}\label{app:results}
+
+\FloatBarrier
+\subsection{All Systems}
+\input{tables/main}
+
+\FloatBarrier
+\subsection{Paired Differences}
+\begin{table}[h]
+\centering
+\caption{Fine-tuned Phi-3.5 minus TF-IDF logistic regression with formula scoring, on the same \nTest{} test CVEs, with 95\% paired bootstrap intervals.}
+\label{tab:paired}
+\small
+\begin{tabular}{lcc}
+\toprule
+Metric & Difference & 95\% interval \\
+\midrule
+Severity accuracy (points) & \nDiffLRfSev & [\nDiffLRfSevLo, \nDiffLRfSevHi] \\
+Severity macro-F1 (points) & \nDiffLRfFone & [\nDiffLRfFoneLo, \nDiffLRfFoneHi] \\
+CWE accuracy (points) & \nDiffLRfCwe & [\nDiffLRfCweLo, \nDiffLRfCweHi] \\
+Score MAE & \nDiffLRfMae & [\nDiffLRfMaeLo, \nDiffLRfMaeHi] \\
+Exact CVSS vector (points) & \nDiffLRfVec & [\nDiffLRfVecLo, \nDiffLRfVecHi] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+\subsection{Component Values}
+\input{tables/value_freq}
+
+\FloatBarrier
+\subsection{Exact CVSS Vectors}\label{app:exact}
+\input{tables/sole_component}
+\input{tables/gap}

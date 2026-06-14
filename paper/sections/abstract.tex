@@ -1,10 +1,3 @@
-Security teams triage newly disclosed vulnerabilities by their CVSS vector, the severity tier it implies, and their CWE weakness class.
-Until April 2026 the National Vulnerability Database (NVD) supplied these labels for nearly every CVE.
-NIST has since limited enrichment to high-priority vulnerabilities, and most new CVEs now arrive as a text description with none of the fields that triage depends on.
-We formalize the problem of recovering these fields as \emph{CVE enrichment}: given only the description, predict the eight CVSS v3.1 components, the base score, the severity tier, and the CWE.
-Progress on this task requires evaluation that respects time, because vulnerabilities in the same product recur across years, so we train on CVEs from 2022 and 2023 in a pinned NVD snapshot and test on all \nTest{} usable CVEs from 2024.
-We compare TF-IDF classifiers, the 3.8B-parameter Phi-3.5-mini used zero-shot, and the same model fine-tuned with LoRA, and we evaluate each under two scoring schemes that either predict the CVSS score directly or compute it from the predicted vector with the official formula.
-The fine-tuned model is the strongest system on every field, reaching \nLoRAfSev\% severity accuracy, \nLoRAfCwe\% CWE accuracy, and an exact CVSS vector on \nLoRAfVec\% of test CVEs, \nDiffLRfSev{} to \nDiffLRfVec{} points ahead of TF-IDF logistic regression with paired bootstrap intervals that exclude zero.
-The two trained systems err on different CVEs, and one or the other is correct on \nEitherSev\% of severity labels.
-Computing the score from the predicted vector improves the linear baseline and makes every prediction internally consistent, at the cost of over-predicting the \textsc{Critical} tier.
-We release code, configuration, and per-CVE predictions, and every number in this paper is regenerated from the pinned snapshot.
+Until April 2026, the National Vulnerability Database (NVD) included a Common Vulnerability Scoring System (CVSS) vector, severity tier (Low, Medium, High, or Critical) and a Common Weakness Enumeration (CWE) vulnerability type for almost every CVE.
+After April 2026, NIST started enriching only high priority vulnerabilities, and the overwhelming majority of new CVEs now appear without this information.
+We consider the task of enriching new CVEs by predicting this information: given a CVE description, predict its CVSS v3.1 base metrics, CVSS score, severity, and CWE type.

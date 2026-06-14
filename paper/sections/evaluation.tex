@@ -1,0 +1,28 @@
+\section{Our Evaluation}\label{sec:evaluation}
+
+\paragraph{Dataset.}
+CVE descriptions can be very repetitive: it is common to observe several near-duplicate descriptions of the same vulnerability (e.g., found in different packages), sometimes weeks or months apart.
+Thus, a random split of the CVE data can produce a training set which is representative of the test data distribution.
+In this work, we instead take a temporal approach: train only on 2022 and 2023 CVEs and test on 2024 CVEs, to determine how well each system can generalize to future vulnerabilities.
+All CVE data is taken from a particular snapshot of a National Vulnerability Database (NVD) feed,\footnote{Release \texttt{v2026.10.05-000016} of the Fraunhofer FKIE mirror of the NVD JSON feeds~\citep{fkie2026nvdfeeds}.} so as to avoid discrepancies between statistics reported in this document and results of released artifacts.
+We evaluate on all \nTest{} 2024 CVEs meeting the following inclusion criteria (see Appendix~\ref{app:stats} for statistics and additional information):
+\begin{itemize}
+  \item CVE has a CVSS v3.x base metric vector and severity label;
+  \item CVE has a CWE that is specific (excluding the placeholders \texttt{NVD-CWE-noinfo} and \texttt{NVD-CWE-Other});
+  \item CVE's NVD-provided description is in English and at least 20 characters long.
+\end{itemize}
+
+\paragraph{Approach and metrics.}
+As discussed in the introduction, CVSS base score and severity are simple calculations~\citep{first2019cvss31}, functions of the eight different components.
+Thus, given a vulnerability description, we want to train systems that either (1) predict a score, or (2) predict the eight components and then calculate the score from that vector~\citep{elbaz2020fighting,shahid2021cvssbert}, and analyze performance in terms of severity classification (accuracy and macro-averaged F$_1$-score), CWE classification (accuracy), and CVSS score and vector.
+For CVSS score, we report mean absolute error (MAE), and for CVSS vector, we report the percent of CVEs for which all eight components are correctly predicted (``Exact CVSS'' in Table~\ref{tab:summary}).
+We implemented a CVSS v3.1 calculator and verified it agrees with the CVSS base score listed by the NVD for all \nAll{} CVEs in our dataset.
+Thus, any score errors reported are a result of mistakes in component prediction.
+
+\paragraph{Systems evaluated.}
+For CWE classification, CVSS score, vector, and severity classification we evaluate three systems: a TF-IDF + logistic regression classifier, an instruction-tuned 3.8B-parameter LLM prompted zero-shot for classification, and that same LLM after a short (\nLoraTrainHours{} hour) LoRA fine-tuning to predict CWE and CVSS.
+TF-IDF-based classifiers are strong baselines on this task: \citet{talibzade2025llms} find TF-IDF features perform best for CWE and severity prediction, and find them challenging to outperform on NLP tasks using vulnerability description text.
+Further details about data preparation and training can be found in Appendix~\ref{app:data}.
+
+We release our code\footnote{\url{https://github.com/jessiedong01/cvss-cwe-prediction}} as well as our system's prediction for each CVE.\footnote{In the \texttt{results/} directory of the repository, one JSON Lines file per system.}
+Statistics reported here have been updated to be calculated from a particular snapshot of an NVD feed~\citep{fkie2026nvdfeeds} release (\texttt{v2026.10.05-000016}); please run our provided scripts for calculation on this data release to exactly reproduce the numbers below and in Appendix~\ref{app:results}.

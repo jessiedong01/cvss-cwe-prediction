@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Agreement between fine-tuned Phi-3.5 and TF-IDF logistic regression (formula scoring) on the 2024 test set (\%). The last column is the share of CVEs on which at least one of the two is correct.}
+\label{tab:agreement}
+\small
+\begin{tabular}{lccccc}
+\toprule
+ & Both correct & Fine-tuned only & TF-IDF only & Neither & At least one \\
+\midrule
+Severity & 61.3 & 8.6 & 5.9 & 24.2 & 75.8 \\
+CWE & 64.4 & 6.5 & 2.9 & 26.2 & 73.8 \\
+Exact CVSS vector & 39.7 & 9.1 & 4.5 & 46.7 & 53.3 \\
+\bottomrule
+\end{tabular}
+\end{table}

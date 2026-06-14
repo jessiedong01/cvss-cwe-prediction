@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Severity tiers on the 2{,}000-CVE zero-shot sample: as assigned by NIST, as written by zero-shot Phi-3.5, and as computed from the vector it wrote. Counts with shares (\%) in parentheses.}
+\label{tab:zssev}
+\small
+\begin{tabular}{lccc}
+\toprule
+Tier & NVD & Zero-shot, written & Zero-shot, from vector \\
+\midrule
+Critical & 266 (13.3) & 1{,}247 (62.4) & 68 (3.4) \\
+High & 742 (37.1) & 697 (34.8) & 558 (27.9) \\
+Medium & 951 (47.5) & 9 (0.4) & 1{,}146 (57.3) \\
+Low & 41 (2.1) & 2 (0.1) & 15 (0.8) \\
+No valid tier & -- & 45 (2.2) & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

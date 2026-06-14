@@ -1,19 +1,24 @@
-\section{Related Work}
+\section{Related Work}\label{sec:related}
 
-\paragraph{CVSS vector prediction.}
-\citet{elbaz2020fighting} predicted each CVSS metric from a bag-of-words description with a linear model and derived the score from the predicted vector, with an emphasis on decisions that an analyst could inspect at disclosure time.
-CVSS-BERT~\citep{shahid2021cvssbert} trained one BERT classifier per CVSS v3.1 metric and computed the score with the equations of the specification.
-\citet{marchiori2025canllms} compared general-purpose LLMs with embedding-based classifiers on the same task and found the classifiers stronger on the three impact metrics.
-We keep the predict-the-vector design of these works and add a fine-tuned small language model, a strict temporal split, and a direct comparison against score regression.
-
-\paragraph{Severity and CWE classification.}
+\paragraph{Automatic vulnerability triage.}
+\citet{elbaz2020fighting} considered the problem of triaging new vulnerabilities as they are disclosed, and asked which triage decisions an analyst could automate using only the information available at that time.
+For predicting the eight base CVSS metrics from vulnerability descriptions represented as bags of words, they found a linear classifier to perform best.
+They report both directly predicting CVSS scores, and predicting CVSS vectors from which to compute CVSS scores.
+CVSS-BERT~\citep{shahid2021cvssbert} takes a similar approach, training a BERT classifier for each metric, and use the specification's formula to compute CVSS scores from predicted vectors.
+\citet{marchiori2025canllms} find that a classifier over strong embeddings outperforms general-purpose LLMs, at least on the three impact-related CVSS metrics.
 VLAI~\citep{bonhomme2025vlai} fine-tunes RoBERTa on more than 600,000 vulnerabilities to predict the severity tier.
-Its training set spans many years and includes 2024, so there is no fair way to score it on our test set (Section~\ref{sec:data}).
-For CWE assignment, \citet{aota2020automation} used bag-of-words features with random forests, and \citet{mosievskiy2026roberta} reports that a 125M-parameter RoBERTa competes with much larger LLMs.
+VLAI was trained on more than 600,000 vulnerabilities including CVEs from 2024 and later years, meaning we cannot fairly compare to this system on our test set.
 
-\paragraph{LLMs for vulnerability triage.}
-\citet{talibzade2025llms} found that TF-IDF classifiers beat general-purpose LLMs with generic prompts on CWE and severity assignment and attributed this to the schematic wording of CVE descriptions.
-Our zero-shot results agree with theirs.
-CVE-LLM~\citep{ghosh2025cvellm} fine-tunes an LLM with a domain ontology to evaluate medical-device vulnerabilities, and \citet{torkamani2025casey} use LLMs to assign CWEs and severity inside a triage tool.
-On the related task of predicting exploitation, \citet{roytman2025benchmarking} reports that frontier LLMs fall well short of the statistical EPSS model and cost far more to run at scale, and industry systems such as VulnWatch~\citep{databricks2025vulnwatch} prioritize vulnerabilities with hosted LLMs.
-Our setting differs from these systems in two ways: everything runs on local hardware, and every output is scored on vulnerabilities disclosed after the training data.
+For CWE prediction, \citet{aota2020automation} predict using random forest classification over bag-of-words features.
+More recently, \citet{mosievskiy2026roberta} show that a small (125M parameter) RoBERTa language model fine-tuned on CVE-CWE pairs performs on par with larger LLMs for this task.
+\citet{talibzade2025llms} find that for both CWE and severity prediction, TF-IDF features outperform larger LLMs prompted generically about the task, which they hypothesize is due to the highly schematic nature of CVE descriptions.
+We find similar results on zero-shot severity prediction in Section~\ref{sec:findings}.
+
+CVE-LLM~\citep{ghosh2025cvellm} fine-tunes on vulnerabilities in medical devices, using a domain ontology for supervision, and \citet{torkamani2025casey} use LLMs to predict CWE and severity as part of a vulnerability triage tool.
+
+\paragraph{LLMs for vulnerability-related tasks.}
+Recent work has considered LLMs on a range of vulnerability-related tasks.
+VulnWatch~\citep{databricks2025vulnwatch} uses LLMs to prioritize vulnerabilities.
+\citet{roytman2025benchmarking} finds that, for predicting likely exploitation (EPSS scores), even the best performing frontier LLMs lag behind state of the art statistical models, while costing orders of magnitude more to query at scale.
+
+Unlike VulnWatch~\citep{databricks2025vulnwatch} and much previous work, we run our models on local hardware and evaluate on vulnerabilities introduced strictly after those in our training data.
