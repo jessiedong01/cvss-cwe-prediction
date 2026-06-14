@@ -40,7 +40,7 @@ We use the 3.8B-parameter phi-3.5-mini-instruct (Phi) causal LM (decoder-only LL
 Unlike VulnWatch~\citep{databricks2025vulnwatch}, a system that utilises hosted (commercial) LLMs, Phi is available for download, and specialised enough, to be practically usable on local hardware.
 Phi's training data is reported to end in October 2023,\footnote{\url{https://huggingface.co/microsoft/Phi-3.5-mini-instruct}} i.e., before any CVEs in the test set.
 
-We fine-tune with LoRA~\citep{hu2022lora} using MLX~\citep{hannun2023mlx}, on a single Apple M5 Pro chip with 64\,GB unified memory.
+We fine-tune with LoRA~\citep{hu2022lora} using MLX~\citep{hannun2023mlx}.
 The LoRAs (rank 16, scale 20, dropout 0.05) are applied to all linear projections in the final 16 transformer layers, totalling \nLoraParams M parameters, only \nLoraPct\% of Phi's parameters.
 We train for 5,000 steps (one epoch) with batch size 8.
 The learning rate is $10^{-4}$ for the first 100 (warm-up) steps, then decays cosinally to $10^{-5}$.

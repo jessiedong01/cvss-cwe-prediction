@@ -15,9 +15,9 @@ We validated on 1,000 CVEs from the validation split for each checkpoint (every 
 While accuracy increases up to step \nBestStep, Macro-F$_1$ scores peak earlier (optimum at \nBestFoneStep{} steps with a score of \nBestFoneVal\%).
 Depending on whether mispredictions of the rarer classes Critical and Low are considered more important to reduce than increasing overall accuracy, the model at step \nBestFoneStep{} might be preferred for deployment.
 
-Fine-tuning takes \nLoraTrainHours{} h, scoring the test set (one year's worth of CVEs) another \nLoraTestHours{} h on our local machine (an Apple M5 Pro with 64\,GB memory).
+Fine-tuning takes \nLoraTrainHours{} h, scoring the test set (one year's worth of CVEs) another \nLoraTestHours{} h.
 Batches contained at most 32 CVE descriptions.
-For comparison, all TF-IDF experiments, including tuning, took only \nTfidfMinutes{} minutes on an Apple M5 Pro.
+For comparison, all TF-IDF experiments, including tuning, took only \nTfidfMinutes{} minutes.
 
 Next, we investigate which CVSS vector components models struggle to predict correctly.
 Table~\ref{tab:sole} presents the distribution of CVEs in which a given CVSS vector component is predicted incorrectly, for CVEs with one incorrect vector component.
