@@ -1,0 +1,24 @@
+# MLX-LM LoRA config for Qwen2.5-0.5B-Instruct (lower-bound probe)
+# Usage: python -m mlx_lm.lora --config scripts/lora_config_qwen.yaml
+
+model: "Qwen/Qwen2.5-0.5B-Instruct"
+train: true
+data: "data"
+
+num_layers: 4
+lora_parameters:
+  rank: 8
+  alpha: 16
+  dropout: 0.0
+  scale: 10.0
+
+batch_size: 2
+iters: 1000
+val_batches: 50
+learning_rate: 1.0e-4
+steps_per_report: 50
+steps_per_eval: 200
+save_every: 200
+adapter_path: "adapters/qwen05b"
+
+max_seq_length: 2048
