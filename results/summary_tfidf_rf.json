@@ -1,0 +1,11 @@
+{
+  "model": "TF-IDF + RandomForest",
+  "n_total": 36205,
+  "n_parsed": 36205,
+  "parse_rate": 1.0,
+  "cvss_mae": 0.9739064403118453,
+  "severity_acc": 0.6685540671178014,
+  "cwe_acc": 0.6559038806794641,
+  "cvss_vector_acc": 0.0,
+  "cvss_vector_partial_match": 0.8616765640104957
+}
