@@ -1,3 +1,12 @@
-Until April 2026, the National Vulnerability Database (NVD) included a Common Vulnerability Scoring System (CVSS) vector, severity tier (Low, Medium, High, or Critical) and a Common Weakness Enumeration (CWE) vulnerability type for almost every CVE.
-After April 2026, NIST started enriching only high priority vulnerabilities, and the overwhelming majority of new CVEs now appear without this information.
-We consider the task of enriching new CVEs by predicting this information: given a CVE description, predict its CVSS v3.1 base metrics, CVSS score, severity, and CWE type.
+Until April 2026, the National Vulnerability Database assigned nearly all published CVEs CVSS v3.1 vector and severity tier labels, as well as its CWE weakness type.
+Now, NIST enriches only the high priority CVEs, leaving many newly published vulnerabilities unlabelled with the classifiers that security teams use for patch triage.
+In CVE enrichment, we predict the eight base components of CVSS v3.1 vector, base score, severity tier, and CWE from the vulnerability's textual description alone.
+To prevent leakage between near-duplicate descriptions, all systems are trained only on CVEs published in 2022 and 2023.
+Results are evaluated on all \nTest{} usable 2024 CVEs in the pinned NVD snapshot.
+All scores are either directly predicted, or calculated from predicted vectors using the CVSS formula.
+A fine-tuned 3.8B-parameter model Phi-3.5-mini, trained with LoRA in \nLoraTrainHours{} hours on a single Apple M5 Pro chip, achieves \nLoRAfSev\% accuracy on severity and \nLoRAfCwe\% on CWE.
+It matches the official vector exactly for \nLoRAfVec\% of test CVEs, outperforming TF-IDF logistic regression by 2.8 to 4.7 points on all accuracy metrics based on zero-exclusion paired bootstrap intervals.
+When we evaluate the base model with a zero-shot prompt, it achieves \nZSdSev\% accuracy on severity in a sample of \nSub{} CVEs.
+In this same sample, its stated scores match its own vector precisely for only \nZSScoreCons\% of CVEs.
+However, deriving scores from predicted vectors boosts the critical recall of TF-IDF logistic regression from \nLRdRecCritical\% to \nLRfRecCritical\% with no additional cost.
+And since the errors of the fine-tuned model and TF-IDF affect different CVEs, at least one system matches the correct severity tier for \nEitherSev\% of test CVEs.

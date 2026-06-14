@@ -386,7 +386,7 @@ def compute_table() -> None:
     macro("nTfidfMinutes", MISSING if tfidf is None else f"{tfidf.total_seconds() / 60:.0f}")
     (TABLES / "compute.tex").write_text(r"""\begin{table}[htbp]
 \centering
-\caption{Wall-clock time on a single Apple M5 Pro (64\,GB), with inference run in small batches of at most 32 CVEs and without optimization for speed.}
+\caption{Wall-clock time on a single machine, with inference run in small batches of at most 32 CVEs and without optimization for speed.}
 \label{tab:compute}
 \small
 \begin{tabular}{lr}
