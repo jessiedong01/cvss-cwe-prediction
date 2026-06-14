@@ -1,0 +1,41 @@
+\begin{table}[t]
+\centering
+\caption{Share of 2024 test CVEs (\%) with each value of each CVSS v3.1 component, as assigned by NIST and as predicted by the fine-tuned model.}
+\label{tab:valuefreq}
+\small
+\begin{tabular}{llrr}
+\toprule
+Component & Value & NVD & Fine-tuned \\
+\midrule
+Attack vector & Network & 76.2 & 79.2 \\
+ & Adjacent & 2.9 & 0.9 \\
+ & Local & 20.1 & 19.5 \\
+ & Physical & 0.7 & 0.4 \\
+\addlinespace[2pt]
+Attack complexity & Low & 94.3 & 98.2 \\
+ & High & 5.7 & 1.8 \\
+\addlinespace[2pt]
+Privileges required & Low & 40.3 & 35.2 \\
+ & High & 9.4 & 4.7 \\
+ & None & 50.4 & 60.1 \\
+\addlinespace[2pt]
+User interaction & None & 66.1 & 64.1 \\
+ & Required & 33.9 & 35.9 \\
+\addlinespace[2pt]
+Scope & Unchanged & 73.5 & 76.6 \\
+ & Changed & 26.5 & 23.4 \\
+\addlinespace[2pt]
+Confidentiality & Low & 30.6 & 25.2 \\
+ & High & 48.8 & 56.0 \\
+ & None & 20.6 & 18.8 \\
+\addlinespace[2pt]
+Integrity & Low & 32.1 & 27.8 \\
+ & High & 41.2 & 45.9 \\
+ & None & 26.7 & 26.3 \\
+\addlinespace[2pt]
+Availability & Low & 9.0 & 0.2 \\
+ & High & 48.8 & 55.3 \\
+ & None & 42.2 & 44.5 \\
+\bottomrule
+\end{tabular}
+\end{table}

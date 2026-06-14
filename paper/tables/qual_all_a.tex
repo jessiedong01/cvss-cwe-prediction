@@ -1,0 +1,32 @@
+\begin{table}[p]
+\centering
+\caption{Test CVEs on which all four trained systems predicted the wrong value for the listed component (attack vector, attack complexity, privileges required, and user interaction). Bold marks words in the NVD description that may signal the true value. FT: fine-tuned Phi-3.5, LR: logistic regression, CB: class-balanced logistic regression, RF: random forest, all with formula scoring. Values: N network or none, A adjacent, L local or low, P physical, H high, R required, U unchanged, C changed.}
+\label{tab:qualalla}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llp{6.2cm}cl@{}}
+\toprule
+Component & CVE & Description & True & Predicted \\
+\midrule
+Attack vector & \texttt{CVE-2024-0001} & A condition exists in FlashArray Purity whereby a local account intended for initial array configuration remains active potentially allowing a malicious actor to gain elevated privileges. & N & FT:L LR:L CB:L RF:L \\
+ & \texttt{CVE-2024-0311} & A malicious insider can bypass the existing policy of Skyhigh Client Proxy without a valid release code. & L & FT:N LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0315} & Remote file inclusion vulnerability in FireEye Central Management affecting version 9.1.1.956704. This vulnerability allows an attacker to upload a malicious PDF file to the system during the report creation process. & L & FT:N LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0321} & Stack-based Buffer Overflow in GitHub repository gpac/gpac prior to 2.3-DEV. & N & FT:L LR:L CB:L RF:L \\
+\addlinespace[3pt]
+Attack complexity & \texttt{CVE-2024-0056} & Microsoft.Data.SqlClient and System.Data.SqlClient SQL Data Provider Security Feature Bypass Vulnerability & H & FT:L LR:L CB:L RF:L \\
+ & \texttt{CVE-2024-0144} & NVIDIA nvJPEG2000 library contains a vulnerability where an attacker can cause a buffer overflow issue by means of a specially crafted JPEG2000 file. A successful exploit of this vulnerability might lead to data tampering. & H & FT:L LR:L CB:L RF:L \\
+ & \texttt{CVE-2024-0410} & An authorization bypass vulnerability was discovered in GitLab affecting versions 15.1 prior to 16.7.6, 16.8 prior to 16.8.3, and 16.9 prior to 16.9.1. A developer could bypass CODEOWNERS approvals by creating a merge conflict. & H & FT:L LR:L CB:L RF:L \\
+ & \texttt{CVE-2024-0980} & The Auto-update service for Okta Verify for Windows is vulnerable to two flaws which in combination could be used to execute arbitrary code. & H & FT:L LR:L CB:L RF:L \\
+\addlinespace[3pt]
+Privileges required & \texttt{CVE-2024-0179} & SMM Callout vulnerability within the AmdCpmDisplayFeatureSMM driver could allow locally authenticated attackers to overwrite SMRAM, potentially resulting in arbitrary code execution. & H & FT:L LR:L CB:L RF:L \\
+ & \texttt{CVE-2024-0231} & A resource misdirection vulnerability in GitLab CE/EE versions 12.0 prior to 17.0.5, 17.1 prior to 17.1.3, and 17.2 prior to 17.2.1 allows an attacker to craft a repository import in such a way as to misdirect commits. & H & FT:L LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0311} & A malicious insider can bypass the existing policy of Skyhigh Client Proxy without a valid release code. & L & FT:N LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0315} & Remote file inclusion vulnerability in FireEye Central Management affecting version 9.1.1.956704. This vulnerability allows an attacker to upload a malicious PDF file to the system during the report creation process. & L & FT:N LR:N CB:N RF:N \\
+\addlinespace[3pt]
+User interaction & \texttt{CVE-2024-0008} & Web sessions in the management interface in Palo Alto Networks PAN-OS software do not expire in certain situations, making it susceptible to unauthorized access. & R & FT:N LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0321} & Stack-based Buffer Overflow in GitHub repository gpac/gpac prior to 2.3-DEV. & N & FT:R LR:R CB:R RF:R \\
+ & \texttt{CVE-2024-0322} & Out-of-bounds Read in GitHub repository gpac/gpac prior to 2.3-DEV. & N & FT:R LR:R CB:R RF:R \\
+ & \texttt{CVE-2024-0410} & An authorization bypass vulnerability was discovered in GitLab affecting versions 15.1 prior to 16.7.6, 16.8 prior to 16.8.3, and 16.9 prior to 16.9.1. A developer could bypass CODEOWNERS approvals by creating a merge conflict. & R & FT:N LR:N CB:N RF:N \\
+\bottomrule
+\end{tabular}
+\end{table}

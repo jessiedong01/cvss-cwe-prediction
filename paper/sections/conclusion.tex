@@ -1,6 +1,22 @@
-\section{Conclusion}
-We introduced CVE enrichment, the task of recovering the CVSS vector, score, severity tier, and CWE of a vulnerability from its text description, along with a leakage-free temporal benchmark built on a pinned NVD snapshot and a verified CVSS calculator.
-On a full year of held-out CVEs, a 3.8B-parameter model fine-tuned for \nLoraTrainHours{} hours outperforms strong TF-IDF baselines on every field, and computing the score from the predicted vector, which costs nothing, is the single change that helps the classical baseline most.
-The two trained systems err on different CVEs, and either one is correct on \nEitherSev\% of severity labels, which we consider the most promising lead in these results.
-Where the fine-tuned model fails, it fails in ways that follow from the text: an ambiguous word about privileges, a weakness class whose typical score overrides a limiting clause, or a description too short to carry the information at all.
-Altogether, we argue that recovering most of the enrichment the NVD no longer provides is tractable with public data and modest compute, and that the remaining errors are as much a property of the descriptions as of the models.
+\section{Conclusion}\label{sec:conclusion}
+
+Our results suggest that CVE enrichment is tractable with modest computational resources, using only CVE description text.
+Our TF-IDF logistic regression model trains in just a few minutes, requires no GPU, and trails the fine-tuned LLM by just a few points in each CVSS component and CWE.
+Moreover, our simple formula scoring, which costs nothing, rescues the TF-IDF model's rare tiers; we therefore recommend deploying formula scoring on top of TF-IDF classification in all but applications that prize precision over recall on Critical vulnerabilities.
+The 3.8B fine-tuned model trains in just \nLoraTrainHours{} hours, and achieves better results across the board: more consistent severity scores and CVSS vectors, and CWEs outside the frequent CWEs.
+At inference time, it takes on the order of a half second to predict each CVE.
+If either throughput or accuracy were insufficient, we might train for more than one epoch (validation accuracy was still climbing; see Table~\ref{tab:ckpt}), oversample or weight the loss of Low predictions (class-balanced weights did help our TF-IDF model), or try larger open models amenable to fine-tuning.
+We leave these directions to future work.
+
+We did not evaluate CVSS v4.0 vectors, which are starting to appear for new CVEs.
+We expect formula scoring to work with these vectors too, though we have not tested it.
+Our fine-tuned LLM could perhaps be retrained on the new format.
+
+Our zero-shot LLM performs poorly by comparison.
+We do not recommend using it for CVE enrichment.
+
+Practitioners might wonder how best to use these models.
+While we did not train or evaluate an ensemble, both our trained models make errors on mostly different CVEs; in principle, then, they might achieve up to \nEitherSev\% accuracy on tiers if ensembled somehow (e.g., by prediction agreement or model confidence).
+An ensemble along these lines might or might not come close to this upper bound; we leave such investigations to future work.
+Until then, we would be loath to deploy either trained model without bearing in mind that their Low tiers are unreliable, as is the privileges required component of CVSS vectors.
+A CVE should be checked before a predicted 9.8 score moves it to the front of the triage queue.

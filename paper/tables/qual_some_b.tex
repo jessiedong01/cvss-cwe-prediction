@@ -1,0 +1,32 @@
+\begin{table}[p]
+\centering
+\caption{Test CVEs on which at least one, but not all, of the four trained systems predicted the wrong value for the listed component (scope and the three impacts). Bold marks words in the NVD description that may signal the true value. FT: fine-tuned Phi-3.5, LR: logistic regression, CB: class-balanced logistic regression, RF: random forest, all with formula scoring. Values: N network or none, A adjacent, L local or low, P physical, H high, R required, U unchanged, C changed.}
+\label{tab:qualsomeb}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llp{6.2cm}cl@{}}
+\toprule
+Component & CVE & Description & True & Predicted \\
+\midrule
+Scope & \texttt{CVE-2024-0078} & NVIDIA GPU Display Driver for Windows and Linux contains a vulnerability in the kernel mode layer, where a user in a \textbf{guest} can cause a NULL-pointer dereference in the host, which may lead to denial of service. & C & FT:U LR:U CB:C RF:U \\
+ & \texttt{CVE-2024-0315} & Remote file inclusion vulnerability in FireEye Central Management affecting version 9.1.1.956704. This vulnerability allows an attacker to upload a malicious PDF file to the system during the report creation process. & U & FT:U LR:U CB:C RF:U \\
+ & \texttt{CVE-2024-0427} & The ARForms - Premium WordPress Form Builder Plugin WordPress plugin before 6.4.1 does not properly escape user-controlled input when it is reflected in some of its AJAX actions. & U & FT:C LR:U CB:U RF:U \\
+ & \texttt{CVE-2024-0440} & Attacker, with permission to submit a link or submits a link via POST to be collected that is using the file:// protocol can then introspect host files and other relatively stored files. & U & FT:U LR:U CB:C RF:U \\
+\addlinespace[3pt]
+Confidentiality & \texttt{CVE-2024-0008} & Web sessions in the management interface in Palo Alto Networks PAN-OS software do not expire in certain situations, making it susceptible to unauthorized access. & H & FT:H LR:N CB:N RF:H \\
+ & \texttt{CVE-2024-0009} & An improper verification vulnerability in the GlobalProtect gateway feature of Palo Alto Networks PAN-OS software enables a malicious user with stolen credentials to establish a VPN connection from an unauthorized IP address. & L & FT:H LR:N CB:L RF:H \\
+ & \texttt{CVE-2024-0057} & NET, .NET Framework, and Visual Studio Security Feature Bypass Vulnerability & H & FT:H LR:H CB:L RF:H \\
+ & \texttt{CVE-2024-0074} & NVIDIA GPU Display Driver for Linux contains a vulnerability where an attacker may access a memory location after the end of the buffer. A successful exploit of this vulnerability may lead to \textbf{denial of service} and data tampering. & N & FT:H LR:N CB:N RF:N \\
+\addlinespace[3pt]
+Integrity & \texttt{CVE-2024-0008} & Web sessions in the management interface in Palo Alto Networks PAN-OS software do not expire in certain situations, making it susceptible to unauthorized access. & H & FT:H LR:N CB:N RF:H \\
+ & \texttt{CVE-2024-0009} & An improper verification vulnerability in the GlobalProtect gateway feature of Palo Alto Networks PAN-OS software enables a malicious user with stolen credentials to establish a VPN connection from an unauthorized IP address. & L & FT:H LR:L CB:L RF:H \\
+ & \texttt{CVE-2024-0056} & Microsoft.Data.SqlClient and System.Data.SqlClient SQL Data Provider Security Feature Bypass Vulnerability & H & FT:H LR:N CB:N RF:H \\
+ & \texttt{CVE-2024-0057} & NET, .NET Framework, and Visual Studio Security Feature Bypass Vulnerability & H & FT:H LR:L CB:L RF:H \\
+\addlinespace[3pt]
+Availability & \texttt{CVE-2024-0008} & Web sessions in the management interface in Palo Alto Networks PAN-OS software do not expire in certain situations, making it susceptible to unauthorized access. & H & FT:H LR:N CB:N RF:N \\
+ & \texttt{CVE-2024-0056} & Microsoft.Data.SqlClient and System.Data.SqlClient SQL Data Provider Security Feature Bypass Vulnerability & N & FT:H LR:N CB:N RF:H \\
+ & \texttt{CVE-2024-0057} & NET, .NET Framework, and Visual Studio Security Feature Bypass Vulnerability & H & FT:H LR:N CB:L RF:H \\
+ & \texttt{CVE-2024-0144} & NVIDIA nvJPEG2000 library contains a vulnerability where an attacker can cause a buffer overflow issue by means of a specially crafted JPEG2000 file. A successful exploit of this vulnerability might lead to data tampering. & H & FT:N LR:H CB:H RF:H \\
+\bottomrule
+\end{tabular}
+\end{table}

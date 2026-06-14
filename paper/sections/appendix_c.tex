@@ -1,0 +1,60 @@
+\FloatBarrier
+\section{Data and Training Details}\label{app:data}
+
+\FloatBarrier
+\subsection{Data}
+We use the publicly available National Vulnerability Database (NVD)\footnote{\url{https://nvd.nist.gov}} for vulnerability data.
+Up until recently the NVD enriched nearly all CVEs with CWEs, CVSS base scores, severity labels and more, but since April 2026~\citep{nist2026nvd} it only enriches vulnerabilities it considers high-priority.
+
+We include all CVEs with a CWE, primary\footnote{When a CVE has several CVSS entries, we use the primary score assigned by NIST.} base CVSS v3 score and severity, published from 2022 to 2024 (both included), for a total of \nAll.
+Of these, \nVThreeZero{} have CVSS v3.0 scores, and the rest v3.1.
+The formula for computing the base score from the eight components gives the same score in both versions for every one of these CVEs.
+
+For training/validation/test we use a temporal split, to prevent data leakage and better reflect real use: We train and validate on older CVEs, and test on newer ones.
+The \nTrainVal{} CVEs with identifiers from 2022 and 2023 are split into training and validation data randomly with an 80/20 ratio, stratified by severity, resulting in \nTrain{} training and \nVal{} validation CVEs, Table~\ref{tab:data}.
+The test data are the \nTest{} remaining (i.e., usable) CVEs, all with identifiers from 2024.
+Note that Low severity is less than 2\% of all CVEs, in all splits.
+The CWEs exhibit a long tail, Table~\ref{tab:data}.
+There are \nTrainCwes{} different CWEs in the training set and \nTestCwes{} in the test set, but the top 100 CWEs in the training set occur in \nTopCov\% of the test CVEs.
+We do not use the recent VLAI data and model of \citet{bonhomme2025vlai} because the random train/validation/test split of the underlying dataset, \texttt{CIRCL/vulnerability-scores}, includes CVEs from 2024 (also present in our test data), 2025 and 2026, so VLAI's performance could in part reflect memorisation rather than generalisation ability.
+A temporal split is necessary to fairly compare all systems' abilities to generalise, particularly since products mentioned in descriptions repeat often.
+
+\FloatBarrier
+\subsection{TF-IDF Baselines}
+As baselines we implement TF-IDF classification/regression methods similar to previous work~\citep{elbaz2020fighting}.
+We create TF-IDF representations with unigrams and bigrams, using sublinear tf and min document frequency 2, including stop words since words such as ``not'' or ``without'' can affect vulnerability meaning.
+We limit the number of features to 50,000.
+We train a different model for each output, Table~\ref{tab:summary}, using scikit-learn~\citep{pedregosa2011sklearn}:
+\begin{description}\sloppy
+  \item[LogReg] We use logistic regression, and select the regularisation strength, $C \in \{0.3, 1, 3, 10\}$, based on validation set accuracy, separately for severity and CWE classification, and for base component classification when predicting all eight components at once.
+  \item[CB-LogReg] Class-balanced logistic regression: Identical setup, except we weight each example inversely proportional to its true class frequency.
+  \item[Rand.\ Forest] Untuned random forest classifier, with 300 trees for severity and CWE, or 100 for each base component.
+  \item[Ridge] Untuned ridge regression to predict scores, except that we choose the $\alpha \in \{0.3, 1, 3, 10\}$ with lowest MAE in validation.
+\end{description}
+For CWE we only train the models on the most frequent 100 CWEs in the training data, plus an \textsc{Other} class for the remaining CWEs.
+A prediction of \textsc{Other} is always considered an error since we compare with the CVEs' true CWEs.
+
+\FloatBarrier
+\subsection{Language Model}
+We use the 3.8B-parameter phi-3.5-mini-instruct (Phi) causal LM (decoder-only LLM)~\citep{abdin2024phi3}.
+Unlike VulnWatch~\citep{databricks2025vulnwatch}, a system that utilises hosted (commercial) LLMs, Phi is available for download, and specialised enough, to be practically usable on local hardware.
+Phi's training data is reported to end in October 2023,\footnote{\url{https://huggingface.co/microsoft/Phi-3.5-mini-instruct}} i.e., before any CVEs in the test set.
+
+We fine-tune with LoRA~\citep{hu2022lora} using MLX~\citep{hannun2023mlx}, on a single Apple M5 Pro chip with 64\,GB unified memory.
+The LoRAs (rank 16, scale 20, dropout 0.05) are applied to all linear projections in the final 16 transformer layers, totalling \nLoraParams M parameters, only \nLoraPct\% of Phi's parameters.
+We train for 5,000 steps (one epoch) with batch size 8.
+The learning rate is $10^{-4}$ for the first 100 (warm-up) steps, then decays cosinally to $10^{-5}$.
+We exclude \nDropped{} examples (\nDroppedPct\%) with more than 768 tokens to limit memory use.
+In contrast we include all test set CVEs, irrespective of length.
+
+The fine-tuning target is a single JSON object: First the eight base score components, then CWE, score, and severity.
+Placing score after components ensures that Phi's output is internally consistent, since it has already (essentially)\footnote{Generation is not constrained, so the model can still write a score that disagrees with its vector. It does so on less than 1\% of test CVEs (Table~\ref{tab:consistency}).} committed to a vector by the time it outputs the score, similar to our formula scoring method (Section~\ref{sec:evaluation}).
+We evaluate a saved model every 1,000 training steps on a sample of 1,000 validation CVEs, scoring predicted scores via formula, and keep the one with best severity accuracy using greedy decoding, Table~\ref{tab:ckpt}.
+
+For zero-shot Phi we use a prompt with a brief task description, all output field names and the legal values for components and severity (Appendix~\ref{app:prompts}).
+Zero-shot Phi is very verbose and slow, so to limit run time we only include it on a random sample of \nSub{} CVEs from the test set.
+Where relevant, we evaluate other systems on the same sample.
+
+\FloatBarrier
+\subsection{Dataset Statistics}\label{app:stats}
+\input{tables/data}

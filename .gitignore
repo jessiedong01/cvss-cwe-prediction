@@ -27,3 +27,6 @@ paper/*.out
 arxiv/
 cve-paper-arxiv.tar.gz
 paper/*.aux
+paper/plaintext/
+paper/rewrite/
+paper/old_sections/

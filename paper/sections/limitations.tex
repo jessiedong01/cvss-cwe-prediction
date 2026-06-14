@@ -1,24 +1,15 @@
 \section{Limitations}\label{sec:limitations}
 
-\paragraph{Label noise.}
-We treat NVD vectors as ground truth even though analysts disagree, NVD revises its records, and reporting organizations sometimes score the same CVE differently.
-Section~\ref{sec:discussion} shows several errors that a reviewer would accept as alternative readings.
-We pin the data snapshot so that our numbers stay fixed as the labels change.
+Our CWE evaluation using descriptions alone is likely to underestimate achievable performance, since CWE prediction is much easier when, unlike us but like NVD analysts, you can draw on context outside the description (e.g., by reading the original advisory).
+This point bears out in the CWEs predicted incorrectly according to the NVD in Table~\ref{tab:examples}, where the CVSS vectors are nonetheless correct.
+(More CWE disagreements between the model and the NVD appear in Section~\ref{sec:discussion}.)
+For CVE-2024-0204 (an authentication bypass in GoAnywhere MFT), the NVD chooses CWE-425 (direct request, also called forced browsing), while our model chooses CWE-287 (improper authentication), arguably a more intuitive CWE.
+For CVE-2024-0149 (a vulnerability in an NVIDIA driver allowing ``unauthorized access to files'' and a ``limited information disclosure''), the NVD chooses CWE-125 (out-of-bounds read), while our model chooses CWE-200 (exposure of sensitive information); it's true that the information is sensitive, but the description makes no mention of an out-of-bounds read.
+Some fraction of the CWE errors reported in Table~\ref{tab:main} stem from such disagreements between the text and the NVD's CWE labels, and several of the other errors in Section~\ref{sec:discussion} are alternative interpretations a human might endorse.
 
-\paragraph{Single split and seed.}
-We evaluate on one test year and train each model once, so the bootstrap intervals capture the sampling of test CVEs and nothing about variation from training.
-We fine-tune one 3.8B model for one epoch, and its validation accuracy was still rising at the end (Table~\ref{tab:ckpt}), so larger models or longer training may do better.
-We did not run large hosted models, and we trained the fine-tuned model without rebalancing the rare tier.
+Our benchmark evaluates each model on a single (held out) year's worth of test CVEs.
+Moreover, each model is trained just once.
+Accordingly, the error bars reported in Appendix~\ref{app:results} do not reflect variability from training, but only from randomly sampling test-year CVEs.
 
-\paragraph{No ensemble.}
-We report the disagreement between the two trained systems as an upper bound on what a combination could achieve, and we did not build or test one.
-
-\paragraph{CVSS version.}
-New CVEs increasingly carry CVSS v4.0 vectors.
-The formula approach carries over, since v4.0 also computes the score from the vector, but we tested nothing on v4.0 data.
-
-\paragraph{Zero-shot sample.}
-We evaluate the zero-shot model on \nSub{} random test CVEs rather than the full year, and the intervals in Table~\ref{tab:subset} reflect the smaller sample.
-
-\paragraph{Input length.}
-We use only English descriptions and cut them at 2,000 characters, which affects \nTestClipped\% of test CVEs.
+For space reasons, we only report the performance of our zero-shot LLM on a random sample of \nSub{} test CVEs, not on the entire year as for other models.
+As such, the confidence intervals reported in Table~\ref{tab:subset} do not reflect the size of our full test set, but rather the \nSub{}-CVE subset.
