@@ -1,0 +1,27 @@
+# MLX-LM LoRA config for Phi-3.5-mini-instruct (paper run).
+# Usage: python -m mlx_lm.lora --config scripts/lora_phi35.yaml
+model: "microsoft/Phi-3.5-mini-instruct"
+train: true
+data: "data/lora"
+fine_tune_type: lora
+num_layers: 16
+lora_parameters:
+  rank: 16
+  scale: 20.0
+  dropout: 0.05
+batch_size: 8
+iters: 5000              # ~1 epoch over 39,875 examples
+learning_rate: 1.0e-4
+lr_schedule:
+  name: cosine_decay
+  arguments: [1.0e-4, 5000, 1.0e-5]
+  warmup: 100
+mask_prompt: true         # loss on the answer only
+max_seq_length: 1024
+grad_checkpoint: false   # not needed with examples capped at 768 tokens
+steps_per_report: 50
+steps_per_eval: 500
+val_batches: 50
+save_every: 500
+adapter_path: "adapters/phi35"
+seed: 42

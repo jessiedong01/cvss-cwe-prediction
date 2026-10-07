@@ -1,0 +1,14 @@
+{
+  "criterion": "validation severity accuracy, formula system",
+  "every": 1000,
+  "n_val": 1000,
+  "scores": {
+    "1000": 0.682,
+    "2000": 0.726,
+    "3000": 0.744,
+    "4000": 0.76,
+    "5000": 0.763
+  },
+  "best_step": 5000,
+  "best_file": "adapters/phi35/0005000_adapters.safetensors"
+}

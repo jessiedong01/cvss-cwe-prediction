@@ -1,0 +1,20 @@
+\section{Related Work}
+
+\paragraph{CVSS vector prediction.}
+\citet{elbaz2020fighting} predicted each CVSS metric from a bag-of-words description with linear models and derived the score from the predicted vector, with an emphasis on explainable decisions at disclosure time.
+CVSS-BERT~\citep{shahid2021cvssbert} trained one BERT classifier per CVSS v3.1 metric and computed the score with the specification's equations.
+\citet{marchiori2025canllms} compared general-purpose LLMs with embedding-based classifiers for computing CVSS vectors and found the embedding methods stronger on the more subjective impact metrics (confidentiality, integrity, availability).
+We follow the predict-the-vector design of these works and add a fine-tuned small language model, a strict temporal split, and a direct comparison with score regression.
+
+\paragraph{Severity and CWE classification.}
+VLAI~\citep{bonhomme2025vlai} fine-tunes RoBERTa on more than 600,000 vulnerabilities to predict the severity tier.
+Its training set spans CVEs from many years, including 2024, so it is not comparable on our test set. We discuss this in Section~\ref{sec:data}.
+For CWE assignment, \citet{aota2020automation} used bag-of-words features with random forests, and \citet{mosievskiy2026roberta} reports that a 125M-parameter RoBERTa is competitive with much larger LLMs.
+
+\paragraph{LLMs for vulnerability triage.}
+\citet{talibzade2025llms} found that TF-IDF classifiers beat general-purpose LLMs with generic prompts on CWE and severity assignment, and attribute this to the schematic wording of CVE descriptions.
+CVE-LLM~\citep{ghosh2025cvellm} fine-tunes an LLM with a domain ontology to evaluate medical-device vulnerabilities.
+\citet{torkamani2025casey} use LLMs to assign CWEs and severity in a triage tool.
+For a related task, predicting exploitation, \citet{roytman2025benchmarking} reports that frontier LLMs fall well short of the statistical EPSS model and cost far more to run at scale.
+Industry systems such as VulnWatch~\citep{databricks2025vulnwatch} prioritize vulnerabilities with LLMs on hosted infrastructure.
+Our setting differs in two ways: everything runs locally, and every output is evaluated on vulnerabilities disclosed after the training data.

@@ -66,6 +66,9 @@ def parse_file(json_path: Path) -> pd.DataFrame:
         cvss = _cvss_data(cve.get("metrics", {}))
         if not cvss or "baseScore" not in cvss:
             continue
+        # Score 0.0 has severity NONE, which is not a triage tier.
+        if cvss.get("baseSeverity", "").upper() not in ("CRITICAL", "HIGH", "MEDIUM", "LOW"):
+            continue
 
         cwe = _cwe(cve.get("weaknesses", []))
         if not cwe:

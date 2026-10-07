@@ -1,0 +1,8 @@
+Since April 2026, the U.S. National Vulnerability Database enriches only high-priority CVEs, so most new vulnerabilities arrive with a text description and no NIST-assigned CVSS vector, severity or weakness class.
+We ask how well a model can supply these fields from the description alone.
+Using a pinned NVD snapshot, we train on CVEs from 2022--2023 and test on all \nTest{} usable CVEs from 2024.
+We compare TF-IDF classifiers, a 3.8B-parameter language model (Phi-3.5-mini) used zero-shot, and the same model fine-tuned with LoRA, and we compare predicting the CVSS score directly with computing it from the predicted vector.
+The fine-tuned model is best on every field: \nLoRAfSev\% severity accuracy, \nLoRAfCwe\% CWE accuracy, a score MAE of \nLoRAfMae, and an exact CVSS vector on \nLoRAfVec\% of test CVEs, ahead of TF-IDF logistic regression by \nDiffLRfSev{} to \nDiffLRfVec{} points, with paired bootstrap intervals that exclude zero.
+Computing the score from the vector helps logistic regression but trades precision on the \textsc{Critical} tier for recall, and the fine-tuned model learns to keep its own score and vector consistent on \nLoRAScoreCons\% of CVEs.
+The zero-shot model trails both.
+We release code, configuration and per-CVE predictions.
