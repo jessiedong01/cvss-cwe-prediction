@@ -1,4 +1,13 @@
 \section{Conclusion}
-A 3.8B-parameter model fine-tuned for \nLoraTrainHours{} hours predicts every NVD enrichment field more accurately than strong TF-IDF baselines on a full year of later CVEs, although the margins are modest and TF-IDF remains a fast and strong baseline that any new method should exceed.
-Computing the score from the predicted vector keeps outputs consistent and helps a linear model, but it shifts errors toward over-calling \textsc{Critical}, a trade-off that users should choose deliberately, and the rarest severity tier, \textsc{Low}, remains poorly predicted by every system.
-Natural next steps are rebalancing the training data, a second training epoch, larger open models, and evaluation on CVSS v4.0.
+A 3.8B-parameter model fine-tuned for \nLoraTrainHours{} hours predicts every NVD enrichment field more accurately than strong TF-IDF baselines on a full year of later CVEs.
+The margins are a few points.
+TF-IDF remains a fast baseline that any new method should have to beat, and formula scoring, which costs nothing, is the single change that helps it most.
+The two trained systems fail on different CVEs, and either one is right on \nEitherSev\% of severities, which is the most promising lead in these results.
+Where the fine-tuned model misses, it misses in ways that follow from the text: a single ambiguous word about privileges, a weakness class whose typical score overrides a limiting clause, or a description too short to carry the information at all.
+\textsc{Low} remains poorly predicted by every system.
+
+Several extensions follow directly from these findings.
+Oversampling \textsc{Low} or weighting its loss should be tried for the fine-tuned model, since the same change helped TF-IDF.
+A combination of the two trained systems, by agreement or by confidence, would test whether the \nEitherSev\% upper bound can be approached.
+A second training epoch is cheap and the validation curve suggests it would help.
+Larger open models fine-tuned the same way, and an evaluation on CVSS v4.0 vectors, would show whether the results hold beyond the setting studied here.

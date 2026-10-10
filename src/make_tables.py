@@ -401,6 +401,202 @@ LoRA inference, """ + macros["nTest"] + r""" test CVEs & """ + macros["nLoraTest
 """)
 
 
+# ── Additional analyses for the discussion ───────────────────────────────────
+
+def _wrong(r):
+    from metrics import COMPONENTS
+    return [f for f in COMPONENTS if _norm(r["true_components"][f]) != _norm(r["pred_components"].get(f))]
+
+
+def tex_escape(t: str) -> str:
+    t = " ".join(t.split())
+    for a, b in (("\\", r"\textbackslash{}"), ("&", r"\&"), ("%", r"\%"), ("$", r"\$"), ("#", r"\#"),
+                 ("_", r"\_"), ("{", r"\{"), ("}", r"\}"), ("<", r"\textless{}"), (">", r"\textgreater{}")):
+        t = t.replace(a, b)
+    return t
+
+
+def vector_errors_and_overlap(full: dict) -> None:
+    from collections import Counter
+    lrf, lo = full["LRf"][1], full["LoRAf"][1]
+    if not lrf or not lo:
+        return
+    by = {r["cve_id"]: r for r in lrf}
+    pairs = [(by[r["cve_id"]], r) for r in lo if r["cve_id"] in by]
+    n = len(pairs)
+    for prefix, k in (("LRf", 0), ("LoRAf", 1)):
+        recs = [p[k] for p in pairs]
+        cnt = Counter(min(len(_wrong(r)), 3) for r in recs)
+        for name, i in (("Zero", 0), ("One", 1), ("Two", 2), ("ThreePlus", 3)):
+            macro(f"n{prefix}Vec{name}", pct(cnt[i] / n))
+        sole = Counter(_wrong(r)[0] for r in recs if len(_wrong(r)) == 1)
+        tot = sum(sole.values())
+        macro(f"n{prefix}SolePR", pct(sole["privileges_required"] / tot, 0))
+        macro(f"n{prefix}SoleAvail", pct(sole["availability"] / tot, 0))
+    for field, key, tag in (("severity", "pred_severity", "Sev"), ("cwe", "pred_cwe", "Cwe")):
+        a = np.array([_norm(x[key]) == _norm(x["true_" + field]) for x, _ in pairs])
+        b = np.array([_norm(y[key]) == _norm(y["true_" + field]) for _, y in pairs])
+        macro(f"nBoth{tag}", pct(np.mean(a & b))); macro(f"nLoRAOnly{tag}", pct(np.mean(b & ~a)))
+        macro(f"nLROnly{tag}", pct(np.mean(a & ~b))); macro(f"nEither{tag}", pct(np.mean(a | b)))
+        macro(f"nNeither{tag}", pct(np.mean(~a & ~b)))
+    a = np.array([len(_wrong(x)) == 0 for x, _ in pairs]); b = np.array([len(_wrong(y)) == 0 for _, y in pairs])
+    macro("nEitherVec", pct(np.mean(a | b))); macro("nLoRAOnlyVec", pct(np.mean(b & ~a))); macro("nLROnlyVec", pct(np.mean(a & ~b)))
+
+
+def tier_mae_table(full: dict) -> None:
+    rows = []
+    for name, prefix in (("TF-IDF ridge regression (direct)", "LRd"), ("TF-IDF + LR, formula", "LRf"), ("Phi-3.5 + LoRA, formula", "LoRAf")):
+        recs = full[prefix][1]
+        if not recs:
+            continue
+        cells = []
+        for c in SEVERITIES:
+            d = [abs(r["pred_cvss_score"] - r["true_cvss_score"]) for r in recs
+                 if _norm(r["true_severity"]) == c and r["pred_cvss_score"] is not None]
+            cells.append(f"{np.mean(d):.2f}")
+            macro(f"n{prefix}Mae{c.title()}", f"{np.mean(d):.2f}")
+        rows.append(f"{name} & " + " & ".join(cells) + r" \\")
+    (TABLES / "tiers_mae.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Mean absolute score error by true severity tier on the 2024 test set.}
+\label{tab:tiermae}
+\small
+\begin{tabular}{lcccc}
+\toprule
+System & Critical & High & Medium & Low \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+def length_table(full: dict) -> None:
+    test = pd.read_pickle(ROOT / "data" / "splits.pkl")["test"].set_index("cve_id")
+    lrf, lo = full["LRf"][1], full["LoRAf"][1]
+    if not lrf or not lo:
+        return
+    lens = pd.Series({r["cve_id"]: len(test.loc[r["cve_id"], "description"]) for r in lo})
+    q = pd.qcut(lens, 4, labels=[1, 2, 3, 4])
+    bounds = [int(x) for x in lens.quantile([0, .25, .5, .75, 1])]
+    for i, b in enumerate(bounds):
+        macro(f"nLenB{'ABCDE'[i]}", fmt_int(b))
+    rows = []
+    for name, prefix, recs in (("TF-IDF + LR, formula", "LRf", lrf), ("Phi-3.5 + LoRA, formula", "LoRAf", lo)):
+        by = {r["cve_id"]: r for r in recs}
+        cells = []
+        for k in (1, 2, 3, 4):
+            ids = q[q == k].index
+            sev = np.mean([_norm(by[i]["pred_severity"]) == _norm(by[i]["true_severity"]) for i in ids])
+            vec = np.mean([len(_wrong(by[i])) == 0 for i in ids])
+            macro(f"n{prefix}SevQ{'ABCD'[k-1]}", pct(sev)); macro(f"n{prefix}VecQ{'ABCD'[k-1]}", pct(vec))
+            cells.append(f"{pct(sev)} & {pct(vec)}")
+        rows.append(f"{name} & " + " & ".join(cells) + r" \\")
+    (TABLES / "length.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Severity accuracy and exact-vector rate (\%) by quartile of description length on the 2024 test set. Quartile boundaries are """ + f"{bounds[1]}, {bounds[2]}, and {bounds[3]}" + r""" characters.}
+\label{tab:length}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc}
+\toprule
+ & \multicolumn{2}{c}{Shortest quartile} & \multicolumn{2}{c}{Second} & \multicolumn{2}{c}{Third} & \multicolumn{2}{c}{Longest quartile} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+System & Sev. & Vector & Sev. & Vector & Sev. & Vector & Sev. & Vector \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+def zero_shot_components() -> None:
+    from metrics import COMPONENTS
+    zs = load_preds(RESULTS / "preds_phi35_zeroshot_formula_test.jsonl.gz")
+    zd = load_preds(RESULTS / "preds_phi35_zeroshot_direct_test.jsonl.gz")
+    if not zs:
+        return
+    names = {"attack_vector": "AV", "attack_complexity": "AC", "privileges_required": "PR", "user_interaction": "UI",
+             "scope": "S", "confidentiality": "C", "integrity": "I", "availability": "A"}
+    for f in COMPONENTS:
+        acc = np.mean([_norm(r["true_components"][f]) == _norm(r["pred_components"].get(f)) for r in zs])
+        macro(f"nZSComp{names[f]}", pct(acc, 0))
+    allowed = {"NETWORK", "ADJACENT_NETWORK", "LOCAL", "PHYSICAL", "LOW", "HIGH", "NONE", "REQUIRED", "UNCHANGED", "CHANGED"}
+    macro("nZSUnparsed", fmt_int(sum(not r["parsed"] for r in zd)))
+    macro("nZSInvalid", fmt_int(sum(any(_norm(r["pred_components"].get(f)) not in allowed for f in COMPONENTS) for r in zd if r["parsed"])))
+
+
+def checkpoint_table() -> None:
+    rows = []
+    best_f1 = None
+    for p in sorted(RESULTS.glob("summary_ckpt*_val.json"), key=lambda x: int(x.stem[len("summary_ckpt"):-len("_val")])):
+        s = json.loads(p.read_text())
+        step = int(s["tag"][4:])
+        e = s["systems"][f"{s['tag']}_formula"]["est"]
+        rows.append(f"{fmt_int(step)} & {pct(e['sev'])} & {pct(e['sev_macro_f1'])} & {pct(e['cwe'])} & {e['ae']:.2f} & {pct(e['vector'])} \\\\")
+        if best_f1 is None or e["sev_macro_f1"] > best_f1[1]:
+            best_f1 = (step, e["sev_macro_f1"])
+    if not rows:
+        return
+    macro("nBestFoneStep", fmt_int(best_f1[0]))
+    macro("nBestFoneVal", pct(best_f1[1]))
+    (TABLES / "checkpoints.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Validation metrics of the fine-tuned model under formula scoring at each saved checkpoint, on the same 1,000 validation CVEs.}
+\label{tab:ckpt}
+\small
+\begin{tabular}{rccccc}
+\toprule
+Step & Severity acc. & Macro-F1 & CWE acc. & Score MAE & Exact vector \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
+EXAMPLE_IDS = {"CVE-2024-0003": "Purity", "CVE-2024-0008": "PanOS", "CVE-2024-0257": "RoboDK",
+               "CVE-2024-10214": "Mattermost", "CVE-2024-0204": "GoAnywhere", "CVE-2024-0149": "Nvidia"}
+
+
+def examples_table(full: dict) -> None:
+    lo = full["LoRAf"][1]
+    if not lo:
+        return
+    by = {r["cve_id"]: r for r in lo}
+    test = pd.read_pickle(ROOT / "data" / "splits.pkl")["test"].set_index("cve_id")
+    short = {"attack_vector": "AV", "attack_complexity": "AC", "privileges_required": "PR", "user_interaction": "UI",
+             "scope": "S", "confidentiality": "C", "integrity": "I", "availability": "A"}
+    rows = []
+    for cid, tag in EXAMPLE_IDS.items():
+        r = by[cid]
+        desc = tex_escape(test.loc[cid, "description"])
+        if len(desc) > 210:
+            desc = desc[:207].rsplit(" ", 1)[0] + "\\,\\ldots"
+        wrong = ", ".join(short[f] for f in _wrong(r)) or "none"
+        rows.append(rf"\texttt{{{cid}}} & {desc} & {r['true_cvss_score']} {r['true_severity'].title()}, {r['true_cwe']} & "
+                    rf"{r['pred_cvss_score']} {str(r['pred_severity']).title()}, {r['pred_cwe']} & {wrong} \\")
+        macro(f"nEx{tag}True", f"{r['true_cvss_score']}"); macro(f"nEx{tag}Pred", f"{r['pred_cvss_score']}")
+    (TABLES / "examples.tex").write_text(r"""\begin{table}[t]
+\centering
+\caption{Test CVEs discussed in Section~\ref{sec:discussion}, with the NVD labels and the output of the fine-tuned model. The last column lists the vector components the model got wrong.}
+\label{tab:examples}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lp{5.3cm}p{1.9cm}p{1.9cm}l@{}}
+\toprule
+CVE & Description & NVD & Predicted & Wrong \\
+\midrule
+""" + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+""")
+
+
 def misc_numbers() -> None:
     # Training ran in the first pipeline attempt; the second resumed at evaluation.
     log = next((p for p in (RESULTS / "log_gpu_attempt1.txt", RESULTS / "log_gpu.txt")
@@ -464,6 +660,12 @@ def main() -> None:
     tier_table(full)
     consistency_table()
     paired_differences(full)
+    vector_errors_and_overlap(full)
+    tier_mae_table(full)
+    length_table(full)
+    zero_shot_components()
+    checkpoint_table()
+    examples_table(full)
     component_and_rare_cwe(full)
     compute_table()
     misc_numbers()

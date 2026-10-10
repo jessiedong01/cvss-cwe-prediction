@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Mean absolute score error by true severity tier on the 2024 test set.}
+\label{tab:tiermae}
+\small
+\begin{tabular}{lcccc}
+\toprule
+System & Critical & High & Medium & Low \\
+\midrule
+TF-IDF ridge regression (direct) & 1.23 & 0.80 & 0.96 & 2.91 \\
+TF-IDF + LR, formula & 0.59 & 0.81 & 1.04 & 3.26 \\
+Phi-3.5 + LoRA, formula & 0.53 & 0.76 & 0.92 & 2.90 \\
+\bottomrule
+\end{tabular}
+\end{table}
