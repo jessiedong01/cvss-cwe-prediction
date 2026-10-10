@@ -87,7 +87,7 @@ def data_section() -> None:
                     f" & {fmt_int(df['cwe'].nunique())} \\\\")
     (TABLES / "data.tex").write_text(r"""\begin{table}[t]
 \centering
-\caption{\textbf{Data splits.} Severity columns give the share of CVEs (\%) in each tier.}
+\caption{Data splits, with severity columns giving the share of CVEs (\%) in each tier.}
 \label{tab:data}
 \small
 \begin{tabular}{lrrrrrr}
@@ -174,7 +174,7 @@ def main_results() -> dict:
                 continue
             est = s["est"][key]
             macro(f"n{prefix}{suffix}", f"{est:.2f}" if key == "ae" else pct(est))
-    results_table(rows, r"\textbf{Fine-tuned Phi-3.5 is best on every metric.} All systems on the full 2024 test set (" + macros["nTest"] + r" CVEs). "
+    results_table(rows, r"All systems on the full 2024 test set (" + macros["nTest"] + r" CVEs). "
                   r"Values are percentages except score MAE. $\pm$ gives the half-width of the 95\% bootstrap interval. "
                   r"Bold marks the best value in each column. The TF-IDF direct systems share one ridge regression, "
                   r"so their score MAE is identical.",
@@ -219,8 +219,8 @@ def subset_results(full: dict) -> None:
         for key, suffix in METRICS:
             macro(f"n{prefix}{suffix}", MISSING if s is None else
                   (f"{s['est'][key]:.2f}" if key == "ae" else pct(s["est"][key])))
-    results_table(table_rows, r"\textbf{Zero-shot Phi-3.5 trails both trained systems.} Comparison on the same random sample of " + macros["nSub"] +
-                  r" test CVEs. Every system is scored on exactly these CVEs.", "tab:subset",
+    results_table(table_rows, r"Comparison on the same random sample of " + macros["nSub"] +
+                  r" test CVEs, on which every system is scored.", "tab:subset",
                   TABLES / "subset.tex")
 
 
@@ -257,7 +257,7 @@ def tier_table(full: dict) -> None:
         body.append(f"{name} & " + " & ".join(f"{pct(t[c][0])} & {pct(t[c][1])}" for c in SEVERITIES) + r" \\")
     (TABLES / "tiers.tex").write_text(r"""\begin{table}[t]
 \centering
-\caption{\textbf{\textsc{Low} is the hardest tier for every system.} Recall and F1 (\%) by true severity tier on the 2024 test set.}
+\caption{Recall and F1 (\%) by true severity tier on the 2024 test set.}
 \label{tab:tiers}
 \small
 \setlength{\tabcolsep}{3.5pt}
@@ -288,7 +288,7 @@ def consistency_table() -> None:
         rows.append(f"{name} & {pct(parse)} & {pct(sc)} & {pct(sv)} \\\\")
     (TABLES / "consistency.tex").write_text(r"""\begin{table}[htbp]
 \centering
-\caption{\textbf{Fine-tuning makes outputs self-consistent.} Language-model outputs (\%). \emph{Score = formula}: the score the model wrote equals the CVSS v3.1 score of the vector it wrote. \emph{Severity = tier of score}: the severity it wrote matches the tier of the score it wrote.}
+\caption{Self-consistency of language-model outputs (\%), where \emph{Score = formula} is the share of outputs whose written score equals the CVSS v3.1 score of the written vector and \emph{Severity = tier of score} is the share whose written severity matches the tier of the written score.}
 \label{tab:consistency}
 \small
 \begin{tabular}{lccc}
@@ -385,7 +385,7 @@ def compute_table() -> None:
     macro("nTfidfMinutes", MISSING if tfidf is None else f"{tfidf.total_seconds() / 60:.0f}")
     (TABLES / "compute.tex").write_text(r"""\begin{table}[htbp]
 \centering
-\caption{\textbf{Compute cost.} Wall-clock time on a single Apple M5 Pro (64\,GB). Inference used small batches (at most 32 CVEs) and was not optimized for speed.}
+\caption{Wall-clock time on a single Apple M5 Pro (64\,GB), with inference run in small batches of at most 32 CVEs and without optimization for speed.}
 \label{tab:compute}
 \small
 \begin{tabular}{lr}

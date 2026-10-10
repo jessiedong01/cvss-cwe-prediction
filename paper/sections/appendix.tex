@@ -1,17 +1,14 @@
 \section{Prompts}\label{app:prompts}
-Both prompts are sent as a single user turn through the Phi-3.5 chat template.
-Descriptions longer than 2,000 characters (\nTestClipped\% of test CVEs) are cut at 2,000 characters.
+Both prompts are sent as a single user turn through the Phi-3.5 chat template, and descriptions longer than 2,000 characters (\nTestClipped\% of test CVEs) are cut at that length.
 \input{tables/prompts}
 
 \section{Reproducibility}\label{app:repro}
-All code, configuration files, and per-CVE predictions are in the project repository.
-The NVD snapshot is pinned to FKIE release \texttt{v2026.10.05-000016}.
-Each step below is one command and regenerates its part of the paper:
+All code, configuration files, and per-CVE predictions are in the project repository, the NVD snapshot is pinned to FKIE release \texttt{v2026.10.05-000016}, and each step below is a single command that regenerates its part of the paper.
 \begin{itemize}\itemsep0pt
-  \item data: \texttt{download\_data.py}, \texttt{prepare\_splits.py};
-  \item TF-IDF baselines: \texttt{baselines\_classical.py};
-  \item LoRA training: \texttt{mlx\_lm.lora} with \texttt{scripts/lora\_phi35.yaml};
-  \item checkpoint selection: \texttt{select\_checkpoint.py};
-  \item evaluation: \texttt{evaluate\_lora.py};
-  \item tables, figures, and every number in the text: \texttt{make\_tables.py}, \texttt{plot\_results.py}.
+  \item Data preparation with \texttt{download\_data.py} and \texttt{prepare\_splits.py}.
+  \item TF-IDF baselines with \texttt{baselines\_classical.py}.
+  \item LoRA training with \texttt{mlx\_lm.lora} and \texttt{scripts/lora\_phi35.yaml}.
+  \item Checkpoint selection with \texttt{select\_checkpoint.py}.
+  \item Evaluation with \texttt{evaluate\_lora.py}.
+  \item Tables, figures, and numbers in the text with \texttt{make\_tables.py} and \texttt{plot\_results.py}.
 \end{itemize}

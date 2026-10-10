@@ -1,23 +1,17 @@
 \section{Limitations}\label{sec:limitations}
 
 \paragraph{Label noise.}
-We treat NVD's vector as ground truth, but analysts disagree, NVD revises records, and the organizations that report CVEs sometimes score them differently.
-Some of our ``errors'' are disagreements a human reviewer would accept.
-We pin the data snapshot so that our numbers stay fixed even as the labels change.
+NVD vectors are treated as ground truth even though analysts disagree, NVD revises its records, and the organizations that report CVEs sometimes score them differently, so some of the reported errors are disagreements that a human reviewer would accept, and the data snapshot is pinned so that the reported numbers stay fixed as the labels change.
 
 \paragraph{Single split and seed.}
-We test on a single year and train each model once.
-The bootstrap intervals cover sampling of test CVEs, not variation from training.
-We fine-tune one 3.8B model for one epoch, and validation accuracy was still rising at the end (Figure~\ref{fig:val}). Larger models or longer training may do better.
-We did not run large hosted models, and we did not rebalance the training data for the fine-tuned model.
+Evaluation covers a single test year and each model is trained once, so the bootstrap intervals capture the sampling of test CVEs and leave variation from training unmeasured.
+Only one 3.8B model is fine-tuned, for a single epoch, and its validation accuracy was still rising at the end of training (Figure~\ref{fig:val}), so larger models or longer training may perform better, and neither large hosted models nor a rebalanced training set for the fine-tuned model were evaluated.
 
 \paragraph{CVSS version.}
-New CVEs increasingly carry CVSS v4.0 vectors.
-The formula approach carries over, since v4.0 also computes the score from the vector, but we did not test it.
+New CVEs increasingly carry CVSS v4.0 vectors, and although the formula approach carries over because v4.0 also computes the score from the vector, it remains untested on v4.0 data.
 
 \paragraph{Zero-shot sample.}
-We evaluate the zero-shot model on \nSub{} random test CVEs rather than all of them.
-The confidence intervals in Table~\ref{tab:subset} reflect this.
+The zero-shot model is evaluated on \nSub{} random test CVEs drawn from the full test set, and the confidence intervals in Table~\ref{tab:subset} reflect the smaller sample.
 
 \paragraph{Input length.}
-We use English descriptions and cut descriptions at 2,000 characters, which affects \nTestClipped\% of test CVEs.
+Only English descriptions are used, and descriptions are cut at 2,000 characters, which affects \nTestClipped\% of test CVEs.
