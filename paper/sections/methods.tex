@@ -1,31 +1,47 @@
 \section{Methods}\label{sec:methods}
 
 \subsection{Direct and Formula Scoring}
-Every system predicts the eight vector components and the CWE, after which the score and severity are produced in one of two ways.
-In the direct variant, a separate model predicts the score by regression and the severity by classification, or a language model writes both itself, and in the formula variant the CVSS v3.1 equations are applied to the predicted components, so that score, severity, and vector agree by construction.
-For the TF-IDF systems, the direct score comes from a single ridge regression shared by all three classifiers, so their direct score errors are identical and are reported once.
+Every system predicts the eight vector components and the CWE.
+The score and severity are then produced in one of two ways.
+In the \emph{direct} variant, a separate model predicts the score by regression and the severity by classification, or a language model writes both itself.
+In the \emph{formula} variant, the CVSS v3.1 equations are applied to the predicted components, so score, severity, and vector agree by construction.
+The TF-IDF systems share one ridge regression for the direct score, so their direct score errors are identical and appear once.
 
 \subsection{TF-IDF Baselines}
-Each description is represented with TF-IDF over unigrams and bigrams, using sublinear term frequency, a minimum document frequency of 2, and at most 50,000 features, and stop words are kept because words such as ``not'' and ``without'' change the meaning of a description.
-One classifier per output is trained with scikit-learn~\citep{pedregosa2011sklearn}, and logistic regression (LR) chooses its regularization strength $C \in \{0.3, 1, 3, 10\}$ by validation accuracy separately for severity, CWE, and the components, with one $C$ shared by all eight components.
-Class-balanced LR uses the same setup with class weights inversely proportional to class frequency, and an untuned random forest (RF) uses 300 trees for severity and CWE and 100 trees per component with otherwise default settings.
+Each description is represented with TF-IDF over unigrams and bigrams, with sublinear term frequency, a minimum document frequency of 2, and at most 50,000 features.
+Stop words are kept, because ``not'' and ``without'' change the meaning of a description.
+One classifier per output is trained with scikit-learn~\citep{pedregosa2011sklearn}.
+Logistic regression (LR) chooses its regularization strength $C \in \{0.3, 1, 3, 10\}$ by validation accuracy, separately for severity, for CWE, and for the components, with one $C$ shared by all eight components.
+Class-balanced LR is the same with class weights inversely proportional to class frequency.
+A random forest (RF) with 300 trees for severity and CWE and 100 trees per component is included untuned, with default settings otherwise.
 The direct score comes from ridge regression with $\alpha \in \{0.3, 1, 3, 10\}$ chosen by validation MAE.
-The CWE classifiers learn the 100 most frequent training CWEs plus an \textsc{Other} class and are scored against the true CWE, so an \textsc{Other} prediction always counts as an error.
+The CWE classifiers learn the 100 most frequent training CWEs plus an \textsc{Other} class.
+They are scored against the true CWE, so an \textsc{Other} prediction always counts as wrong.
 
 \subsection{Phi-3.5-mini}
-The language model is Phi-3.5-mini-instruct, a 3.8B-parameter decoder~\citep{abdin2024phi3} whose training-data cutoff of October 2023 precedes the test period.
+The language model is Phi-3.5-mini-instruct, a 3.8B-parameter decoder~\citep{abdin2024phi3}.
+Its training data ends in October 2023, before the test period.
 
 \paragraph{Fine-tuning.}
-The model is fine-tuned with LoRA~\citep{hu2022lora} in MLX~\citep{hannun2023mlx} on a single Apple M5 Pro with 64\,GB of unified memory, with adapters of rank 16 (scale 20, dropout 0.05) on the last 16 transformer layers that amount to \nLoraParams{}M trainable parameters, or \nLoraPct\% of the model.
-Training runs for 5,000 steps at batch size 8, which is one pass over the training set, with a learning rate of $10^{-4}$, 100 warm-up steps, and cosine decay to $10^{-5}$, and the loss covers only the answer tokens.
-The \nDropped{} training examples (\nDroppedPct\%) longer than 768 tokens are removed to bound memory, while every test CVE is kept regardless of length.
-The target is a single JSON object that lists the eight components first and then the CWE, the score, and the severity, so the model commits to a vector before it writes a score.
-Checkpoints at steps 1,000, 2,000, \ldots, 5,000 are evaluated on the same 1,000 validation CVEs, the checkpoint with the best severity accuracy under formula scoring is kept, and decoding is greedy.
+The model is fine-tuned with LoRA~\citep{hu2022lora} in MLX~\citep{hannun2023mlx} on a single Apple M5 Pro with 64\,GB of unified memory.
+Adapters of rank 16 (scale 20, dropout 0.05) sit on the last 16 transformer layers, giving \nLoraParams{}M trainable parameters, or \nLoraPct\% of the model.
+Training runs for 5,000 steps at batch size 8, which is one pass over the training set, with a learning rate of $10^{-4}$, 100 warm-up steps, and cosine decay to $10^{-5}$.
+The loss covers only the answer tokens.
+The \nDropped{} training examples (\nDroppedPct\%) longer than 768 tokens are dropped to bound memory.
+Test CVEs are never dropped.
+The target is one JSON object that lists the eight components first and then the CWE, the score, and the severity, so the model commits to a vector before it writes a score.
+Checkpoints at steps 1,000 through 5,000 are evaluated on the same 1,000 validation CVEs (Table~\ref{tab:ckpt}), and the one with the best severity accuracy under formula scoring is kept.
+Decoding is greedy.
+
+\input{tables/checkpoints}
 
 \paragraph{Zero-shot.}
-The same base model without an adapter receives the description and a prompt that lists every field and its allowed values (Appendix~\ref{app:prompts}), and because generating verbose zero-shot output for every test CVE is slow, it is evaluated on a random sample of \nSub{} test CVEs on which every other system is also rescored.
+The same base model, without an adapter, receives the description and a prompt that lists every field and its allowed values (Appendix~\ref{app:prompts}).
+Zero-shot output is verbose and slow to generate for a whole year of CVEs, so it is evaluated on a random sample of \nSub{} test CVEs, and every other system is rescored on the same sample.
 
 \subsection{Metrics}
-Severity is evaluated with accuracy and with macro-F1 over the four tiers, which weights \textsc{Low} as heavily as \textsc{Medium} and so exposes failures on the rare tiers that accuracy hides.
-CWE prediction is evaluated with top-1 accuracy, the score with mean absolute error (MAE), and the vector with per-component accuracy, the mean fraction of components correct (\emph{partial match}), and the fraction of CVEs with all eight components correct (\emph{exact match}).
-A language-model output that is not valid JSON counts as wrong on every field and is excluded from the score MAE, with the parse rate reported separately, and 95\% confidence intervals come from 1,000 bootstrap resamples of test CVEs.
+Severity is evaluated with accuracy and with macro-F1 over the four tiers.
+Macro-F1 weights \textsc{Low} as heavily as \textsc{Medium}, which exposes failures on the rare tiers that accuracy hides.
+CWE prediction uses top-1 accuracy, the score uses mean absolute error (MAE), and the vector uses per-component accuracy, the mean fraction of components correct (\emph{partial match}), and the fraction of CVEs with all eight components correct (\emph{exact match}).
+A language-model output that is not valid JSON counts as wrong on every field and is left out of the score MAE, with the parse rate reported separately.
+All 95\% confidence intervals come from 1,000 bootstrap resamples of test CVEs.

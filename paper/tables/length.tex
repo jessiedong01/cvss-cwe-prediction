@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Severity accuracy and exact-vector rate (\%) by quartile of description length on the 2024 test set. Quartile boundaries are 194, 285, and 444 characters.}
+\label{tab:length}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc}
+\toprule
+ & \multicolumn{2}{c}{Shortest quartile} & \multicolumn{2}{c}{Second} & \multicolumn{2}{c}{Third} & \multicolumn{2}{c}{Longest quartile} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+System & Sev. & Vector & Sev. & Vector & Sev. & Vector & Sev. & Vector \\
+\midrule
+TF-IDF + LR, formula & 59.7 & 38.8 & 67.2 & 38.4 & 71.0 & 50.7 & 70.6 & 48.7 \\
+Phi-3.5 + LoRA, formula & 61.7 & 42.0 & 69.7 & 42.0 & 74.4 & 55.7 & 73.9 & 55.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
