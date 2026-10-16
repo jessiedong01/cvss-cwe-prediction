@@ -8,5 +8,5 @@ rm -rf arxiv && mkdir -p arxiv/figures
 cp paper/main.tex paper/numbers.tex paper/refs.bib paper/main.bbl arxiv/
 cp -R paper/sections paper/tables arxiv/
 cp paper/figures/*.pdf arxiv/figures/
-tar -czf cve-paper-arxiv.tar.gz -C arxiv .
+COPYFILE_DISABLE=1 tar --no-xattrs -czf cve-paper-arxiv.tar.gz -C arxiv .
 echo "wrote cve-paper-arxiv.tar.gz ($(du -h cve-paper-arxiv.tar.gz | cut -f1))"
