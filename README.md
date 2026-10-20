@@ -1,5 +1,7 @@
 # CVSS and CWE Prediction
 
+Paper: [arXiv:2610.24297](https://arxiv.org/abs/2610.24297)
+
 This repository predicts the NVD fields for a CVE from its description alone. The model outputs the CVSS v3.1 vector, the base score, the severity, and the CWE. Since April 2026 the NVD fills in these fields only for high-priority CVEs. We fine-tune Phi-3.5-mini with LoRA and compare it with TF-IDF classifiers and zero-shot prompting. Models train on CVEs from 2022 and 2023 and are tested on every usable CVE from 2024.
 
 ## Reproducing the paper
@@ -21,5 +23,9 @@ bash scripts/run_all.sh
     title={Predicting CVSS and CWE from CVE Descriptions with Fine-Tuned Small Language Models},
     author={Tara Dixit and Jessie Dong and Summer Li},
     year={2026},
+    eprint={2610.24297},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG},
+    url={https://arxiv.org/abs/2610.24297},
 }
 ```
